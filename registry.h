@@ -14,6 +14,7 @@ public:
     std::unordered_map<short, gea::Transform> Transforms;
     std::unordered_map<short, gea::Mesh> Meshes;
     std::unordered_map<short, gea::Texture> Textures;
+    std::unordered_map<short, gea::Physics> Physics;
 
 
 

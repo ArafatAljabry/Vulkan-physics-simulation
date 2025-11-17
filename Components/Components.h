@@ -90,6 +90,7 @@ struct Physics: Component
     glm::vec3 mVelocityVector;
     glm::vec3 mAccelerationVector;
     glm::vec3 mRollingDirectionVector;
+    float mBarrySentricCoord;
 };
 //TODO: SoundSource - Expand sound component
 // struct SoundSource
