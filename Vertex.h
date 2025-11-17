@@ -1,35 +1,48 @@
-// Dag Nylund, Universitetet i Innlandet
-// Matematikk III 2025
-#include <QVector3D>
-#include <QVector2D>
-
 #ifndef VERTEX_H
 #define VERTEX_H
 
-#include <iostream>
+#include <array>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan_core.h>
 
-struct  Vertex {
-    float x;    //Position
-    float y;
-    float z;
-	float r;	//Color
-    float g;
-    float b;
-	float u;	//Texture coordinates (UV)
-    float v;
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
 
-	Vertex() = default;
-    Vertex(QVector3D pos, QVector3D normal, QVector2D uv);
-    Vertex(float x, float y, float z, float r, float g, float b, float u, float v)
-        : x(x), y(y), z(z), r(r), g(g), b(b), u(u), v(v) {}
+    static VkVertexInputBindingDescription getBindingDescription(){
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    //! Overloaded ostream operator which writes all vertex data on an open textfile stream
-    friend std::ostream& operator<< (std::ostream&, const Vertex&);
+        return bindingDescription;
+    }
 
-    //! Overloaded ostream operator which reads all vertex data from an open textfile stream
-    friend std::istream& operator>> (std::istream&, Vertex&);
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+        return attributeDescriptions;
+    }
+
+    bool operator==(const Vertex& other) const {
+        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+    }
 };
 
 #endif // VERTEX_H

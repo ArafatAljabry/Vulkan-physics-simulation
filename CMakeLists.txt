@@ -1,132 +1,83 @@
-cmake_minimum_required(VERSION 3.16)
-project(QtVulkanApp LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.19)
+project(QtVulkan LANGUAGES CXX)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+#find_package(glm REQUIRED)
+find_package(Vulkan REQUIRED)
 
 qt_standard_project_setup()
 
-qt_add_executable(QtVulkanApp
-    Renderer.cpp Renderer.h
-    MainWindow.cpp MainWindow.h
+add_executable(QtVulkan
     main.cpp
-    VulkanWindow.h VulkanWindow.cpp
-    TriangleSurface.h TriangleSurface.cpp
-    VisualObject.h VisualObject.cpp
-    Vertex.h Vertex.cpp
-    Camera.h Camera.cpp
-    Triangle.h Triangle.cpp
-    Input.h
-    WorldAxis.h WorldAxis.cpp
+    Renderer.h Renderer.cpp
     Utilities.h
-    stb_image.h
-    stb_image.cpp
-    HeightMap.h HeightMap.cpp
-    ObjMesh.h ObjMesh.cpp
-    physics_system.h physics_system.cpp
-)
-# Define the shader files
-set(SHADER_FILES
-    color.frag
-    color.vert
-    texture.frag
-    texture.vert
+    Vertex.h
+    UI/MainWindow.h UI/MainWindow.cpp UI/MainWindow.ui
+    logger.h logger.cpp
+    macros.h
+    core.h
+    SoundTester.h SoundTester.cpp
+
+    camera.h camera.cpp
+    Components/Components.h
+    Entities/Entity.h Entities/Entity.cpp
+    Systems/System.h Systems/System.cpp
+    Input.h
+    quadtree.h quadtree.cpp
+    engineinit.h engineinit.cpp
+    Shaders/Shader.frag
+    Shaders/Shader.vert
+    Shaders/frag.spv
+    Shaders/vert.spv
+    Shaders/PhongShader.frag
+    Shaders/PhongShader.vert
+    registry.h
+    entityManager.h
+    Systems/inputsystem.h Systems/inputsystem.cpp
+    Systems/FileSystem.h Systems/FileSystem.cpp
+    magic_enum.hpp
+    Widgets/widgetfile.cpp Widgets/widgetfile.h Widgets/widgetsquareimage.cpp Widgets/widgetsquareimage.h
+    UI/widgetfile.ui
+    Systems/CameraSystem.h Systems/CameraSystem.cpp
+    Systems/RenderSystem.h Systems/RenderSystem.cpp
+    TransformManager.h TransformManager.cpp
+    Systems/PhysicsSystem.h
+    Systems/PhysicsSystem.cpp
 )
 
-# Add the shader files to the project
-add_custom_target(Shaders
-    SOURCES ${SHADER_FILES}
+# OpenAL / Sound
+target_include_directories(QtVulkan PRIVATE $ENV{OPENAL_HOME}/include)
+target_link_libraries(QtVulkan PRIVATE $ENV{OPENAL_HOME}/libs/Win64/OpenAL32.lib) # could be OpenAL32.lib)
+# Copy the DLL after build
+# This makes the .exe use the correct .dll from the library we compile to
+# (the "COMMAND echo" only works on Windows)
+add_custom_command(TARGET QtVulkan POST_BUILD
+    #COMMAND echo Copying OpenAL32.dll...
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $ENV{OPENAL_HOME}/bin/Win64/OpenAL32.dll
+        $<TARGET_FILE_DIR:QtVulkan>)
+
+if(MSVC)
+    # Required for proper C++ exception handling with MSVC
+    target_compile_options(QtVulkan PRIVATE /EHsc)
+
+endif()
+
+
+target_link_libraries(QtVulkan
+
+    PRIVATE
+            Qt6::Widgets
+            Qt6::Core
+            Vulkan::Vulkan
 )
 
-set_target_properties(QtVulkanApp PROPERTIES
-    WIN32_EXECUTABLE TRUE
-    MACOSX_BUNDLE TRUE
-)
-
-target_link_libraries(QtVulkanApp PRIVATE
-    Qt6::Core
-    Qt6::Gui
-    Qt6::Widgets
-)
-
-# Resources:
-set_source_files_properties("color_frag.spv"
-    PROPERTIES QT_RESOURCE_ALIAS "color_frag.spv"
-)
-
-set_source_files_properties("color_vert.spv"
-    PROPERTIES QT_RESOURCE_ALIAS "color_vert.spv"
-)
-
-set_source_files_properties("texture_frag.spv"
-    PROPERTIES QT_RESOURCE_ALIAS "texture_frag.spv"
-)
-
-set_source_files_properties("texture_vert.spv"
-    PROPERTIES QT_RESOURCE_ALIAS "texture_vert.spv"
-)
-
-set(QtVulkanApp_resource_files
-    "color_frag.spv"
-    "color_vert.spv"
-    "texture_frag.spv"
-    "texture_vert.spv"
-)
-
-qt_add_resources(QtVulkanApp "QtVulkanApp"
-    PREFIX
-        "/"
-    FILES
-        ${QtVulkanApp_resource_files}
-)
-
-install(TARGETS QtVulkanApp
-    BUNDLE  DESTINATION .
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+include(GNUInstallDirs)
+install(TARGETS QtVulkan
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-
-qt_generate_deploy_app_script(
-    TARGET QtVulkanApp
-    OUTPUT_SCRIPT deploy_script
-    NO_UNSUPPORTED_PLATFORM_ERROR
-)
-install(SCRIPT ${deploy_script})
-
-# auto-compilation of the shaders:
-add_custom_target(
-    PreBuildCommandCF ALL
-    COMMAND glslc color.frag -o color_frag.spv
-#   This version includes the debug info in the compiled shader - good for RenderDoc
-#   COMMAND glslangValidator -g -V -o color_frag.spv color.frag
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Compiling color fragment shader"
-)
-add_custom_target(
-    PreBuildCommandCV ALL
-    COMMAND glslc color.vert -o color_vert.spv
-#   COMMAND glslangValidator -g -V -o color_vert.spv color.vert
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Compiling color vertex shader"
-)
-add_custom_target(
-    PreBuildCommandTF ALL
-    COMMAND glslc texture.frag -o texture_frag.spv
-#   This version includes the debug info in the compiled shader - good for RenderDoc
-#   COMMAND glslangValidator -g -V -o texture_frag.spv texture.frag
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Compiling texture fragment shader"
-)
-add_custom_target(
-    PreBuildCommandTV ALL
-    COMMAND glslc texture.vert -o texture_vert.spv
-#   COMMAND glslangValidator -g -V -o texture_vert.spv texture.vert
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Compiling texture vertex shader"
-)
-
-add_dependencies(QtVulkanApp PreBuildCommandCF)
-add_dependencies(QtVulkanApp PreBuildCommandCV)
-add_dependencies(QtVulkanApp PreBuildCommandTF)
-add_dependencies(QtVulkanApp PreBuildCommandTV)
-
-

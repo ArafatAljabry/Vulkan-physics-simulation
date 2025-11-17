@@ -1,31 +1,42 @@
 #ifndef INPUT_H
 #define INPUT_H
-/**
-    This struce just defines the keys we usually want to use
-    You have to set the state of this table manually!
- */
-struct Input
+
+namespace gea
 {
-    bool W{false};
-    bool A{false};
-    bool S{false};
-    bool D{false};
-    bool UP{false};     //Arrow keys
-    bool DOWN{false};
-    bool LEFT{false};
-    bool RIGHT{false};
-    bool Q{false};
-    bool E{false};
-    bool C{false};
-    bool LSHIFT{false};
-    bool LCTRL{false};
-    bool SPACE{false};
-    bool LMB{false};    //Mouse buttons
-    bool RMB{false};
-    bool MMB{false};
-    float MWHEEL{0.f};  //MouseWheel
-    int MOUSEX{0};
-    int MOUSEY{0};
+
+///
+/// @brief All valid states an Input can have, like PRESSED or RELEASED
+///
+enum class ButtonState
+{
+    NONE,
+    PRESSED,
+    RELEASED,
+    HELD
 };
 
+///
+/// @brief Hardcoded Input Variables, should be refactored to let users map their own Input in the editor.
+///
+struct Inputlist
+{
+    //TODO: Input - Refactor Input struct, allowing the user to add their own key bindings to a map, where both the key (arbitrary button name) and the value (which button) are unique.
+
+    ButtonState w = ButtonState::NONE;
+    ButtonState a = ButtonState::NONE;
+    ButtonState s = ButtonState::NONE;
+    ButtonState d = ButtonState::NONE;
+    ButtonState esc = ButtonState::NONE;
+    ButtonState lmb = ButtonState::NONE;
+    ButtonState rmb = ButtonState::NONE;
+};
+
+} //namespace gea
+
+
+
+
+
+
 #endif // INPUT_H
+

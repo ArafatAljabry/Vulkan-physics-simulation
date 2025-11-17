@@ -1,130 +1,184 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include <QVulkanWindow>
+#include <QWindow>
+#include <vulkan/vulkan_core.h>
+#include <string>
 #include <vector>
-#include <unordered_map>
-#include "Camera.h"
-#include "VisualObject.h"
-#include "Utilities.h"
-#include "physics_system.h"
-class Renderer : public QVulkanWindowRenderer
+#include "Vertex.h"
+
+//Forward declarations
+struct SwapChainSupportDetails;
+struct QueueFamilyIndices;
+
+// New struct to hold per-entity rendering data
+struct EntityRenderData
 {
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
+    uint32_t mipLevels;
+
+    uint32_t entityID;  // To track which entity this belongs to
+};
+
+class Renderer : public QWindow
+{
+    Q_OBJECT
 public:
-    Renderer(QVulkanWindow *w, bool msaa = false);
+    explicit Renderer(QWindow* parent = nullptr);
+    ~Renderer();
 
-    //Initializes the Vulkan resources needed,
-    // the buffers
-    // vertex descriptions for the shaders
-    // making the shaders, etc
-    void initResources() override;
-
-    //Set up resources - only MVP-matrix for now:
-    void initSwapChainResources() override;
-
-    //Empty for now - needed since we implement QVulkanWindowRenderer
-    void releaseSwapChainResources() override;
-
-    //Release Vulkan resources when program ends
-    //Called by Qt
-    void releaseResources() override;
-
-    //Render the next frame
-    void startNextFrame() override;
-
-    //Get Vulkan info - just for fun
-    void getVulkanHWInfo();
-
-    std::vector<VisualObject*>& getObjects() { return mObjects; }
-    std::unordered_map<std::string, VisualObject*>& getMap() { return mMap; }
+    void initVulkan();
+    void drawFrame();
 
 protected:
-
-    //Creates the Vulkan shader module from the precompiled shader files in .spv format
-    VkShaderModule createShader(const QString &name);
-
-	void setModelMatrix(QMatrix4x4 modelMatrix);
-    void setViewProjectionMatrix();
-	void setTexture(TextureHandle& textureHandle, VkCommandBuffer commandBuffer);
-
-	void setRenderPassParameters(VkCommandBuffer commandBuffer);
-
-    //The ModelViewProjection MVP matrix
-    QMatrix4x4 mProjectionMatrix;
-    //Rotation angle of the triangle
-    float mRotation{ 0.0f };
-
-    //Vulkan resources:
-    QVulkanWindow* mWindow{ nullptr };
-    QVulkanDeviceFunctions* mDeviceFunctions{ nullptr };
- 
-    //For Uniform buffers
-    VkDescriptorPool mDescriptorPool{ VK_NULL_HANDLE };
-    VkDescriptorSetLayout mDescriptorSetLayout{ VK_NULL_HANDLE };
-    VkDescriptorSet mDescriptorSet{ VK_NULL_HANDLE }; // [QVulkanWindow::MAX_CONCURRENT_FRAME_COUNT] { VK_NULL_HANDLE };
-
-    //For Textures
-    VkDescriptorPool mTextureDescriptorPool{ VK_NULL_HANDLE };
-    VkDescriptorSetLayout mTextureDescriptorSetLayout{ VK_NULL_HANDLE };
-	VkSampler mTextureSampler{ VK_NULL_HANDLE };
-
-    //From Obj branch:
-    VkPipelineCache mPipelineCache{ VK_NULL_HANDLE };
-    VkPipelineLayout mPipelineLayout{ VK_NULL_HANDLE };
-    VkPipeline mPipeline1{ VK_NULL_HANDLE };
-
-    VkQueue mGraphicsQueue{ VK_NULL_HANDLE };
+    //Qt event handlers - called when requestUpdate(); is called
+    void exposeEvent(QExposeEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
+    bool event(QEvent* event) override;
 
 private:
-    friend class VulkanWindow;
-	std::vector<VisualObject*> mObjects;    //All objects in the program  
-    std::unordered_map<std::string, VisualObject*> mMap;    // alternativ container
+    //Dynamic UBO stuff
+    VkDeviceSize dynamicAlignment;
+    std::vector<glm::mat4> modelMatrices;
+    int numObjects = 3;
 
-	//Start of Uniforms and DescriptorSets
-    BufferHandle createGeneralBuffer(const VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	void createVertexBuffer(const VkDeviceSize uniformAlignment, VisualObject* visualObject);
-	void createIndexBuffer(const VkDeviceSize uniformAlignment, VisualObject* visualObject);
-    void createUniformBuffer();
-    void createDescriptorSetLayouts();
-	void createDescriptorSet();
-	void createDescriptorPools();
-    void destroyBuffer(BufferHandle handle);
+    //Instanced rendering stuff
+    std::vector<VkBuffer> storageBuffers;
+    std::vector<VkDeviceMemory> storageBuffersMemory;
+    int numInstances;
 
-	void createTextureSampler();
-    TextureHandle createTexture(const std::string filename);
-	TextureHandle createImage(int width, int height, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkFormat format);
-	void transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
-	void copyBufferToImage(VkBuffer buffer, VkImage image, int width, int height);
-	VkImageView createImageView(VkImage image, VkFormat format);
+    VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
+    VkSurfaceKHR surface;
 
-	void destroyTexture(TextureHandle& textureHandle);
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkDevice device;
 
-    //Texture variables
-    VkSurfaceFormatKHR mSurfaceFormat{};
-    TextureHandle mTextureHandle;
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
 
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags requiredProperties);
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    Camera mCamera;
-    class VulkanWindow* mVulkanWindow{ nullptr };
+    VkRenderPass renderPass;
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
-	VkCommandBuffer beginTransientCommandBuffer();
-	void endTransientCommandBuffer(VkCommandBuffer commandBuffer);
+    VkCommandPool commandPool;
 
-    BufferHandle mUniformBuffer{};
-	void* mUniformBufferLocation{ nullptr };
+    VkImage colorImage;
+    VkDeviceMemory colorImageMemory;
+    VkImageView colorImageView;
 
-    // Color shader material / shader
-    struct {
-        VkShaderModule vertShaderModule;
-        VkShaderModule fragShaderModule;
-		//VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };    //also should have had a spesific pipeline layout
-        VkPipeline pipeline{ VK_NULL_HANDLE };
-    } mColorMaterial;
+    VkImage depthImage;
+    VkDeviceMemory depthImageMemory;
+    VkImageView depthImageView;
 
-    // for physics
-private:
-    physics_system *physics;
+    //we store multiple entities' render data
+    std::vector<EntityRenderData> entityRenderData;
+
+
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+
+    VkDescriptorPool descriptorPool;
+    std::vector<VkDescriptorSet> descriptorSets;
+
+    std::vector<VkCommandBuffer> commandBuffers;
+
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+    std::vector<VkFence> imagesInFlight;
+    size_t currentFrame = 0;
+
+    bool framebufferResized = false;
+
+    // ---- Functions ----
+
+    void cleanupSwapChain();
+    void cleanup();
+    void recreateSwapChain();
+    void createInstance();
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void setupDebugMessenger();
+    void createSurface();
+    void pickPhysicalDevice();
+    void createLogicalDevice();
+    void createSwapChain();
+    void createImageViews();
+    void createRenderPass();
+    void createDescriptorSetLayout();
+    void createGraphicsPipeline();
+    void createFramebuffers();
+    void createStorageBuffers();
+    void createCommandPool();
+    void createColorResources();
+    void createDepthResources();
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    VkFormat findDepthFormat();
+    bool hasStencilComponent(VkFormat format);
+
+    //Now takes EntityRenderData reference and entity ID
+    void createTextureImage(EntityRenderData& entityData, const std::string& path);
+    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+    VkSampleCountFlagBits getMaxUsableSampleCount();
+    void createTextureImageView(EntityRenderData& entityData);
+    void createTextureSampler(EntityRenderData& entityData);
+
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+                     VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                     VkImage& image, VkDeviceMemory& imageMemory);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+    void loadEntities(); //Combined loading function
+    void loadModel(EntityRenderData& entityData, const std::string& path);
+    void createVertexBuffer(EntityRenderData& entityData);
+    void createIndexBuffer(EntityRenderData& entityData);
+
+    void createUniformBuffers();
+    void createDescriptorPool();
+    void createDescriptorSets();
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void createCommandBuffers();
+    void recordCommandBuffer(uint32_t imageIndex);
+    void createSyncObjects();
+    void updateUniformBuffer(uint32_t currentImage, glm::mat4x4 proj, glm::mat4x4 view);
+    VkShaderModule createShaderModule(const std::vector<char>& code);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    bool isDeviceSuitable(VkPhysicalDevice device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    std::vector<const char*> getRequiredExtensions();
+    bool checkValidationLayerSupport();
+    static std::vector<char> readFile(const std::string& filename);
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 };
 
 #endif // RENDERER_H
