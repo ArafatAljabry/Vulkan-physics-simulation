@@ -10,6 +10,7 @@ struct Vertex {
     glm::vec3 color;
     glm::vec2 texCoord;
 
+
     static VkVertexInputBindingDescription getBindingDescription(){
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
@@ -36,6 +37,7 @@ struct Vertex {
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
 
         return attributeDescriptions;
     }

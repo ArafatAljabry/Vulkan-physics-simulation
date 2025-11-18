@@ -1176,8 +1176,12 @@ void Renderer::loadEntities()
         EntityRenderData entityData;
         entityData.entityID = entityID;
 
+
+
         // Load model (fills vertices and indices)
         loadModel(entityData, meshPath);
+        meshComponent.Vertices = entityData.vertices;
+        meshComponent.indices = entityData.indices;
 
         // Create vertex and index buffers
         createVertexBuffer(entityData);
@@ -1190,6 +1194,7 @@ void Renderer::loadEntities()
 
         // Store the completed entity data
         entityRenderData.push_back(std::move(entityData));
+
     }
 
     numInstances = entityRenderData.size();
@@ -1233,18 +1238,6 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
             entityData.indices.push_back(uniqueVertices[vertex]);
         }
     }
-
-    //Create a vector of triangles that we can use to find Barrysentric Coordinats later
-
-    for (size_t i = 0; i < entityData.indices.size(); i += 3) {
-        Vertex v1 = entityData.vertices[entityData.indices[i]];
-        Vertex v2 = entityData.vertices[entityData.indices[i + 1]];
-        Vertex v3 = entityData.vertices[entityData.indices[i + 2]];
-        entityData.vertices.push_back(v1);
-        entityData.vertices.push_back(v2);
-        entityData.vertices.push_back(v3);
-    }
-
 }
 void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();

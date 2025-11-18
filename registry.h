@@ -4,7 +4,6 @@
 
 #include <unordered_map>   // defines std::unordered_map
 #include "Components/Components.h"
-#include "input.h"
 class registry
 {
 public:
@@ -23,6 +22,10 @@ public:
 
     template<typename T>
     void addComponent(short entityID, const T &component);
+
+    template<typename T>
+    bool hasComponent(short entityID, const T &component);
+
 
 
 };
@@ -99,6 +102,13 @@ inline void registry::addComponent<gea::Texture>(short entityID, const gea::Text
 {
     Textures[entityID] = component;
 }
+template <>
+inline void registry::addComponent<gea::Physics>(short entityID, const gea::Physics &component)
+{
+    Physics[entityID] = component;
+}
 
+
+//TODO: redo the registry, not scalable the way it is designed now.
 
 #endif // REGISTRY_H

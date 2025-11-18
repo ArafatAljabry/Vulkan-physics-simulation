@@ -1,12 +1,72 @@
 #include "PhysicsSystem.h"
 #include "../engineinit.h"
+
+
+namespace gea
+{
+//For physics computation
+float radius = 0.5;
+float frictionCooefficient = .1;
+
+
 void gea::PhysicsSystem::update(float deltaTime)
 {
-    terrainInfo newYandNormal;
-    for(auto &[entityID,component] : gea::EngineInit::registry.Transforms)
+
+
+    gea::terrainInfo terrainInfo;
+
+
+    qDebug("physics update ran");
+   for(auto &[entityID,component] : gea::EngineInit::registry.Transforms)
     {
-        //terrainInfo newYAndNormal =  ComputeBarrysentricCoord();
-    }
+
+        if(component.name == "Terrain")
+       {
+           //get the mesh
+            terrainMesh = &gea::EngineInit::registry.Meshes[entityID];
+            continue;
+       }
+
+        terrainInfo = ComputeBarrysentricCoord(component.mPosition,terrainMesh);
+
+
+        //Get the physics component of the entity( in this case a sphere)
+        gea::Physics& entityPhysicsComponent = gea::EngineInit::registry.Physics[entityID];
+
+        //Update its velocity only within the domain of the terrain
+        if(terrainInfo.pos == 0.f) // Stop the ball outside the mesh
+        {
+            entityPhysicsComponent.mVelocityVector  = glm::vec3(0);
+            continue;
+        }
+
+        //Update physics variables
+        glm::vec3 oldPosition = component.mPosition;
+
+        entityPhysicsComponent.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal);
+        entityPhysicsComponent.mVelocityVector        += entityPhysicsComponent.mAccelerationVector * deltaTime;
+        entityPhysicsComponent.mRollingDirectionVector = computeRotationVector(terrainInfo.normal,entityPhysicsComponent.mVelocityVector);
+        entityPhysicsComponent.mBarrySentricCoord      = terrainInfo.pos;
+
+
+
+        //Doing both changes in physics and transform simultaniously as we dont have a system in place, and making one is unnecessary use of time
+        //Note: for Gameengine, seperate the above code with the one below
+
+        //use physics variables to update sphere rotation and position, making it roll on the surface
+
+        component.mPosition  += entityPhysicsComponent.mVelocityVector  * deltaTime; // speed calculated with friction
+        component.mPosition.y = entityPhysicsComponent.mBarrySentricCoord + radius;
+
+        float rotasjonsVinkel = glm::length(component.mPosition - oldPosition)/radius;
+        rotasjonsVinkel *= 10.0f;
+        component.mRotation  += rotasjonsVinkel * entityPhysicsComponent.mRollingDirectionVector;
+
+
+        qDebug(" a: %f, %f, %f",
+                entityPhysicsComponent.mVelocityVector.y,
+               entityPhysicsComponent.mVelocityVector.z);
+   }
 }
 
 glm::vec3 gea::PhysicsSystem::computeAccelerationVector(glm::vec3 normal)
@@ -19,20 +79,26 @@ glm::vec3 gea::PhysicsSystem::computeVelocityVector(glm::vec3 oldVelocityVector,
     return oldVelocityVector + accelerationVector;
 }
 
-glm::vec3 gea::PhysicsSystem::computeRotationVector(glm::vec3 normalVector, glm::vec3 velocityVector)
+glm::vec3 gea::PhysicsSystem::computeRotationVector(glm::vec3 normalVector, glm::vec3  velocityVector)
 {
-    return glm::cross(normalVector,velocityVector);
+
+    return normalize(glm::cross(velocityVector,normalVector)); //Not the same as the notes, yet the opposite gives wrong rotation
 }
 
-gea::terrainInfo gea::PhysicsSystem::ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh terrainMesh)
+glm::vec3 gea::PhysicsSystem::computeFriction(float frictioncooefficient, glm::vec3 normal)
+{
+    return normal * -frictioncooefficient ;
+}
+
+gea::terrainInfo gea::PhysicsSystem::ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh* terrainMesh)
 {
     glm::vec2 p(Position.x, Position.z);
 
-    for (int i = 0; i < terrainMesh.indices.size() - 2; i += 3)
+    for (int i = 0; i < terrainMesh->indices.size() - 2; i += 3)
     {
-        const Vertex& v0 = terrainMesh.Vertices[terrainMesh.indices[i]];
-        const Vertex& v1 = terrainMesh.Vertices[terrainMesh.indices[i + 1]];
-        const Vertex& v2 = terrainMesh.Vertices[terrainMesh.indices[i + 2]];
+        const Vertex& v0 = terrainMesh->Vertices[terrainMesh->indices[i]];
+        const Vertex& v1 = terrainMesh->Vertices[terrainMesh->indices[i + 1]];
+        const Vertex& v2 = terrainMesh->Vertices[terrainMesh->indices[i + 2]];
 
         glm::vec2 a(v0.pos.x, v0.pos.z);
         glm::vec2 b(v1.pos.x, v1.pos.z);
@@ -66,5 +132,6 @@ gea::terrainInfo gea::PhysicsSystem::ComputeBarrysentricCoord(glm::vec3 Position
     }
 
     // Returner standardverdi hvis punktet ikke ligger i noen trekant
-    return terrainInfo{0.0f, glm::vec3(0.0f, 1.0f, 0.0f)};
+    return terrainInfo{0.f, glm::vec3(.0f, 0.0f, 0.0f)};
+}
 }

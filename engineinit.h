@@ -11,7 +11,7 @@
 #include "registry.h"
 #include "macros.h"
 #include "Systems/inputsystem.h"
-#include "Systems/PhysicsSystem.h".h"
+#include "Systems/PhysicsSystem.h"
 namespace gea
 {
 

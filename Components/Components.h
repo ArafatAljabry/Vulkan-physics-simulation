@@ -87,25 +87,16 @@ struct Camera: Component
 
 struct Physics: Component
 {
-    glm::vec3 mVelocityVector;
-    glm::vec3 mAccelerationVector;
-    glm::vec3 mRollingDirectionVector;
-    float mBarrySentricCoord;
+    glm::vec3 mVelocityVector{0}; // initalizes as [0,0,0]
+    glm::vec3 mAccelerationVector{0};
+    glm::vec3 mRollingDirectionVector{0};
+    float mBarrySentricCoord{0};
 };
 //TODO: SoundSource - Expand sound component
 // struct SoundSource
 // {
 
 // };
-
-
-//The plan is that the systems can use these vectors containing all components of the different types
-//The components should be sorted by EntityID when added to the vectors.
-//A Render system then might need many vectors, but a Move system might only need one or two.
-//Each system just access the ones they need, and iterates through them and do their job.
-//Since the components are sorted by EntityID, the iteration should go well and we should get DOD benefits.
-
-// Vector removed, check registry.h
 
 }   //namespace gea
 
