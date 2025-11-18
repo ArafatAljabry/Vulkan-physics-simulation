@@ -33,12 +33,7 @@ void gea::PhysicsSystem::update(float deltaTime)
         //Get the physics component of the entity( in this case a sphere)
         gea::Physics& entityPhysicsComponent = gea::EngineInit::registry.Physics[entityID];
 
-        //Update its velocity only within the domain of the terrain
-        if(terrainInfo.pos == 0.f) // Stop the ball outside the mesh
-        {
-            entityPhysicsComponent.mVelocityVector  = glm::vec3(0);
-            continue;
-        }
+
 
         //Update physics variables
         glm::vec3 oldPosition = component.mPosition;
@@ -49,13 +44,19 @@ void gea::PhysicsSystem::update(float deltaTime)
         entityPhysicsComponent.mBarrySentricCoord      = terrainInfo.pos;
 
 
+        if(terrainInfo.pos == 0.f) // Stop the ball outside the mesh
+        {
+            entityPhysicsComponent.mVelocityVector  = glm::vec3(0);
+        }
 
         //Doing both changes in physics and transform simultaniously as we dont have a system in place, and making one is unnecessary use of time
         //Note: for Gameengine, seperate the above code with the one below
 
         //use physics variables to update sphere rotation and position, making it roll on the surface
+        //Update its velocity only within the domain of the terrain
 
-        component.mPosition  += entityPhysicsComponent.mVelocityVector  * deltaTime; // speed calculated with friction
+
+        component.mPosition  += entityPhysicsComponent.mVelocityVector  *  deltaTime; // speed calculated with friction
         component.mPosition.y = entityPhysicsComponent.mBarrySentricCoord + radius;
 
         float rotasjonsVinkel = glm::length(component.mPosition - oldPosition)/radius;
@@ -81,8 +82,14 @@ glm::vec3 gea::PhysicsSystem::computeVelocityVector(glm::vec3 oldVelocityVector,
 
 glm::vec3 gea::PhysicsSystem::computeRotationVector(glm::vec3 normalVector, glm::vec3  velocityVector)
 {
+    //dont bother computing if the lenght is too short
+    if(glm::length(velocityVector) < 0.001)
+        return glm::vec3(0);
+    if(glm::length(glm::cross(velocityVector,normalVector)) < 0.001) //return [0,0,0] if the lenght of the cross product is too low
+        return  glm::vec3(0);
 
-    return normalize(glm::cross(velocityVector,normalVector)); //Not the same as the notes, yet the opposite gives wrong rotation
+    //Not the same as the notes, yet the opposite gives wrong rotation
+    return normalize(glm::cross(velocityVector,normalVector));
 }
 
 glm::vec3 gea::PhysicsSystem::computeFriction(float frictioncooefficient, glm::vec3 normal)
