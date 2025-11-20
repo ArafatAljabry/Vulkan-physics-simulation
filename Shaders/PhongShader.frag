@@ -8,13 +8,18 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 lightPos;
 layout(location = 4) in vec3 viewPos;
+layout(location = 5) in vec3 inColor;
 
 
 void main()
 {
 
     bool blinn = true;
-    vec3 color = texture(texSampler, inTexCoord).rgb;
+    vec3 tintColor = inColor;
+    if(inColor == vec3(1,1,1))
+       tintColor = vec3(0,0,0);
+
+    vec3 color = texture(texSampler, inTexCoord).rgb + tintColor;
 
     // ambient
     vec3 ambient = 0.05 * color;

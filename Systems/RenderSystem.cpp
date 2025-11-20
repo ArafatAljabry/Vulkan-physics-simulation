@@ -1,5 +1,6 @@
 #include "RenderSystem.h"
 #include "../core.h"
+#include "../Renderer.h"
 
 namespace gea
 {
@@ -18,5 +19,4 @@ void RenderSystem::init(Renderer*  targetWindow)
     //Trigger first frame
     targetWindow->requestUpdate();
 }
-
 } // End of namespace gea

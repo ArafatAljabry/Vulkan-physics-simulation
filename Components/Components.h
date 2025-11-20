@@ -47,6 +47,7 @@ struct Mesh : Component
     std::vector<Vertex>   Vertices;
     std::vector<uint32_t> indices;
     /*********************************************************/
+    int topology{1};
 };
 
 
@@ -96,6 +97,7 @@ struct Physics: Component
 // New struct to hold per-entity rendering data
 struct EntityRenderData
 {
+    int topology{1};
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 

@@ -22,6 +22,12 @@ public:
     void initVulkan();
     void drawFrame();
 
+    //Get the entityRenderData
+    //TODO: this needs to fit ECS
+    //we store multiple entities' render data
+    std::vector<gea::EntityRenderData> entityRenderData;
+
+
 protected:
     //Qt event handlers - called when requestUpdate(); is called
     void exposeEvent(QExposeEvent* event) override;
@@ -60,7 +66,7 @@ private:
     VkRenderPass renderPass;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    VkPipeline graphicsPipeline, graphicsPipelineLine, graphicsPipelinePoint;
 
     VkCommandPool commandPool;
 
@@ -72,8 +78,6 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
-    //we store multiple entities' render data
-    std::vector<gea::EntityRenderData> entityRenderData;
 
 
     std::vector<VkBuffer> uniformBuffers;
@@ -107,7 +111,7 @@ private:
     void createImageViews();
     void createRenderPass();
     void createDescriptorSetLayout();
-    void createGraphicsPipeline();
+    VkPipeline createGraphicsPipeline(int topology);
     void createFramebuffers();
     void createStorageBuffers();
     void createCommandPool();

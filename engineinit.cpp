@@ -92,6 +92,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Transform transform1;
     transform1.name = "Terrain";
     gea::Mesh mesh1;
+    mesh1.topology = 2;
     mesh1.path = "../../Assets/Models/output.obj";
     gea::Texture texture1;
     texture1.path = "../../Assets/Textures/viking_room.png";

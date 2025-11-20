@@ -15,6 +15,7 @@ public:
     void init(Renderer* targetWindow);
     void render();
     Renderer *getRenderer() const{return mRenderer.get();}
+    void update(float deltaTime);
 
 private:
     std::unique_ptr<Renderer> mRenderer;

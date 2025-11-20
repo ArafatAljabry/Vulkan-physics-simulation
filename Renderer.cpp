@@ -78,7 +78,10 @@ void Renderer::initVulkan()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    createGraphicsPipeline();
+    graphicsPipeline =  createGraphicsPipeline(1);
+    graphicsPipelineLine = createGraphicsPipeline(2);
+    graphicsPipelinePoint = createGraphicsPipeline(3);
+
     createCommandPool();
     createColorResources();
     createDepthResources();
@@ -181,7 +184,11 @@ void Renderer::recreateSwapChain() {
     createSwapChain();
     createImageViews();
     createRenderPass();
-    createGraphicsPipeline();
+
+    graphicsPipeline =  createGraphicsPipeline(1);
+    graphicsPipelineLine = createGraphicsPipeline(2);
+    graphicsPipelinePoint = createGraphicsPipeline(3);
+
     createColorResources();
     createDepthResources();
     createFramebuffers();
@@ -590,7 +597,7 @@ void Renderer::createStorageBuffers()
     }
 }
 
-void Renderer::createGraphicsPipeline() {
+VkPipeline Renderer::createGraphicsPipeline(int topology) { // 1 = triangle, 2 = lines and 3 equals point
     auto vertShaderCode = readFile(PATH + "Shaders/PhongShader.vert.spv");
     auto fragShaderCode = readFile(PATH + "Shaders/PhongShader.frag.spv");
 
@@ -619,7 +626,7 @@ void Renderer::createGraphicsPipeline() {
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::getAttributeDescriptions();
+    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = Vertex::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -630,7 +637,13 @@ void Renderer::createGraphicsPipeline() {
     //How the vertices are assembed into primitives
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    if(topology == 1)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    if(topology == 2)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    if(topology == 3)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    //inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     //3. Viewport & Scissor
@@ -733,8 +746,9 @@ void Renderer::createGraphicsPipeline() {
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
+    VkPipeline pipeline;
     //Create Graphics Pipeline
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }else {
         qDebug("Successfully created a Graphics pipeline!");
@@ -743,6 +757,8 @@ void Renderer::createGraphicsPipeline() {
     //Destroy the shader modules, no longer needed after the pipeline has been created
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
+
+    return pipeline;
 }
 
 void Renderer::createFramebuffers()
@@ -1192,6 +1208,8 @@ void Renderer::loadEntities()
         createTextureImageView(entityData);
         createTextureSampler(entityData);
 
+        //Chosen topology
+        entityData.topology = gea::EngineInit::registry.Meshes[entityID].topology;
         // Store the completed entity data
         entityRenderData.push_back(std::move(entityData));
 
@@ -1213,13 +1231,25 @@ void Renderer::loadModel(gea::EntityRenderData& entityData, const std::string& p
     for (const auto& shape : shapes) {
         for (const auto& index : shape.mesh.indices) {
             Vertex vertex{};
+
+            //Position
             vertex.pos = {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
+            //Colors
+            if(attrib.colors.size() > 0)
+            {
+                vertex.color = {
+                    attrib.colors[3 * index.vertex_index + 0],
+                    attrib.colors[3 * index.vertex_index + 1],
+                    attrib.colors[3 * index.vertex_index + 2]
+                };
+            }
 
+            //Normals
             if (index.normal_index >= 0) {
                 vertex.normal = {
                     attrib.normals[3 * index.normal_index + 0],
@@ -1231,11 +1261,12 @@ void Renderer::loadModel(gea::EntityRenderData& entityData, const std::string& p
                 vertex.normal = {0.0f, 0.0f, 0.0f};
             }
 
+            //UV's
             vertex.texCoord = {
                 attrib.texcoords[2 * index.texcoord_index + 0],
                 1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
             };
-            vertex.color = {1.0f, 1.0f, 1.0f};
+
             if (uniqueVertices.count(vertex) == 0) {
                 uniqueVertices[vertex] = static_cast<uint32_t>(entityData.vertices.size());
                 entityData.vertices.push_back(vertex);
@@ -1548,11 +1579,20 @@ void Renderer::recordCommandBuffer(uint32_t imageIndex)
     renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
 
     // Draw each entity with its own mesh and texture
     for (size_t e = 0; e < entityRenderData.size(); e++) {
         const auto& entity = entityRenderData[e];
+        if(entity.topology == 1)
+            vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        if(entity.topology == 2)
+            vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLine);
+
+        if(entity.topology == 3)
+            vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinePoint);
+
+
 
         // Bind this entity's vertex buffer
         VkBuffer vertexBuffers[] = {entity.vertexBuffer};

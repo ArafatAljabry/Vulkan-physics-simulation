@@ -61,7 +61,8 @@ void gea::PhysicsSystem::update(float deltaTime)
 
         float rotasjonsVinkel = glm::length(component.mPosition - oldPosition)/radius;
         rotasjonsVinkel *= 10.0f;
-        component.mRotation  += rotasjonsVinkel * entityPhysicsComponent.mRollingDirectionVector;
+        if(glm::length(entityPhysicsComponent.mVelocityVector) > 0)
+            component.mRotation  += rotasjonsVinkel * entityPhysicsComponent.mRollingDirectionVector;
    }
 }
 
@@ -139,5 +140,3 @@ gea::terrainInfo gea::PhysicsSystem::ComputeBarrysentricCoord(glm::vec3 Position
         return terrainInfo{0.f, glm::vec3(.0f, 0.0f, 0.0f)};
     }
 }
-
-
