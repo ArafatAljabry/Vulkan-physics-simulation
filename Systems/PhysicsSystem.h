@@ -28,7 +28,7 @@ namespace gea
         glm::vec3 computeAccelerationVector(glm::vec3 normal);
         glm::vec3 computeVelocityVector(glm::vec3 oldVelocityVector, glm::vec3 accelerationVector);
         glm::vec3 computeRotationVector(glm::vec3 normalVector, glm::vec3 velocityVector);
-        glm::vec3 computeFriction(float frictioncooefficient, glm::vec3 normal);
+        glm::vec3 computeFriction(float frictioncooefficient, glm::vec3 normal, glm::vec3 velocity);
         /// @brief Given a position and a vector of vertices representing the terrain,
         ///        computes the barrysentric coordinates and returns the height and normal at that position.
         /// @param Position

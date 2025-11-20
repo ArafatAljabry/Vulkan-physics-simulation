@@ -841,7 +841,7 @@ bool Renderer::hasStencilComponent(VkFormat format) {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Renderer::createTextureImage(EntityRenderData& entityData, const std::string& path)
+void Renderer::createTextureImage(gea::EntityRenderData& entityData, const std::string& path)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -986,14 +986,14 @@ VkSampleCountFlagBits Renderer::getMaxUsableSampleCount() {
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-void Renderer::createTextureImageView(EntityRenderData& entityData) {
+void Renderer::createTextureImageView(gea::EntityRenderData& entityData) {
     entityData.textureImageView = createImageView(entityData.textureImage,
                                                   VK_FORMAT_R8G8B8A8_SRGB,
                                                   VK_IMAGE_ASPECT_COLOR_BIT,
                                                   entityData.mipLevels);
 }
 
-void Renderer::createTextureSampler(EntityRenderData& entityData) {
+void Renderer::createTextureSampler(gea::EntityRenderData& entityData) {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
@@ -1173,7 +1173,7 @@ void Renderer::loadEntities()
                entityID, meshPath.c_str(), texturePath.c_str());
 
         // Create new entity render data
-        EntityRenderData entityData;
+        gea::EntityRenderData entityData;
         entityData.entityID = entityID;
 
 
@@ -1200,46 +1200,51 @@ void Renderer::loadEntities()
     numInstances = entityRenderData.size();
     qDebug("Loaded %d entities for rendering", numInstances);
 }
-void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
+void Renderer::loadModel(gea::EntityRenderData& entityData, const std::string& path)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
-
     if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
         throw std::runtime_error(warn + err);
     }
-
     std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
     for (const auto& shape : shapes) {
         for (const auto& index : shape.mesh.indices) {
             Vertex vertex{};
-
             vertex.pos = {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
+
+            if (index.normal_index >= 0) {
+                vertex.normal = {
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
+                };
+            } else {
+                // Default normal if not provided
+                vertex.normal = {0.0f, 0.0f, 0.0f};
+            }
+
             vertex.texCoord = {
                 attrib.texcoords[2 * index.texcoord_index + 0],
                 1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
             };
-
             vertex.color = {1.0f, 1.0f, 1.0f};
-
             if (uniqueVertices.count(vertex) == 0) {
                 uniqueVertices[vertex] = static_cast<uint32_t>(entityData.vertices.size());
                 entityData.vertices.push_back(vertex);
             }
-
             entityData.indices.push_back(uniqueVertices[vertex]);
         }
     }
 }
-void Renderer::createVertexBuffer(EntityRenderData& entityData) {
+void Renderer::createVertexBuffer(gea::EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();
 
     VkBuffer stagingBuffer;
@@ -1263,7 +1268,7 @@ void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void Renderer::createIndexBuffer(EntityRenderData& entityData) {
+void Renderer::createIndexBuffer(gea::EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.indices[0]) * entityData.indices.size();
 
     VkBuffer stagingBuffer;
@@ -1620,6 +1625,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage, glm::mat4x4 proj, glm:
     ubo.proj[1][1] *= -1;
     ubo.viewPos = glm::vec3(2.0f, 4.0f, 2.0f);
 
+
     void* data;
     vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
@@ -1635,7 +1641,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage, glm::mat4x4 proj, glm:
         if (transformIt != gea::EngineInit::registry.Transforms.end())
         {
             instanceData[i].model = gea::TransformManager::buildModelMatrix(transformIt->second);
-            //gea::TransformSystem::setPosition(entityID, transformIt->second.mPosition);
+            //gea::TransformSystem::setPosition(, transformIt->second.mPosition);
         }
         else
         {

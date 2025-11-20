@@ -32,7 +32,6 @@ void main()
     vec4 worldPos = model * vec4(aPos, 1.0);
     outPos = worldPos.xyz;
     outNormal = normalize(mat3(transpose(inverse(model))) * aNormal);
-
     outTexCoords = aTexCoords;
     outLightPos = ubo.lightPos;
     outViewPos = ubo.viewPos;

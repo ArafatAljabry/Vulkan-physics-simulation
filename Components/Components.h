@@ -92,6 +92,26 @@ struct Physics: Component
     glm::vec3 mRollingDirectionVector{0};
     float mBarrySentricCoord{0};
 };
+
+// New struct to hold per-entity rendering data
+struct EntityRenderData
+{
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
+    uint32_t mipLevels;
+
+    uint32_t entityID;  // To track which entity this belongs to
+};
 //TODO: SoundSource - Expand sound component
 // struct SoundSource
 // {

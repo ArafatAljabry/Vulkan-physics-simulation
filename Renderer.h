@@ -6,30 +6,11 @@
 #include <string>
 #include <vector>
 #include "Vertex.h"
-
+#include "Components/Components.h"
 //Forward declarations
 struct SwapChainSupportDetails;
 struct QueueFamilyIndices;
 
-// New struct to hold per-entity rendering data
-struct EntityRenderData
-{
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
-    uint32_t mipLevels;
-
-    uint32_t entityID;  // To track which entity this belongs to
-};
 
 class Renderer : public QWindow
 {
@@ -92,7 +73,7 @@ private:
     VkImageView depthImageView;
 
     //we store multiple entities' render data
-    std::vector<EntityRenderData> entityRenderData;
+    std::vector<gea::EntityRenderData> entityRenderData;
 
 
     std::vector<VkBuffer> uniformBuffers;
@@ -137,11 +118,11 @@ private:
     bool hasStencilComponent(VkFormat format);
 
     //Now takes EntityRenderData reference and entity ID
-    void createTextureImage(EntityRenderData& entityData, const std::string& path);
+    void createTextureImage(gea::EntityRenderData& entityData, const std::string& path);
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
     VkSampleCountFlagBits getMaxUsableSampleCount();
-    void createTextureImageView(EntityRenderData& entityData);
-    void createTextureSampler(EntityRenderData& entityData);
+    void createTextureImageView(gea::EntityRenderData& entityData);
+    void createTextureSampler(gea::EntityRenderData& entityData);
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
     void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
@@ -151,9 +132,9 @@ private:
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
     void loadEntities(); //Combined loading function
-    void loadModel(EntityRenderData& entityData, const std::string& path);
-    void createVertexBuffer(EntityRenderData& entityData);
-    void createIndexBuffer(EntityRenderData& entityData);
+    void loadModel(gea::EntityRenderData& entityData, const std::string& path);
+    void createVertexBuffer(gea::EntityRenderData& entityData);
+    void createIndexBuffer(gea::EntityRenderData& entityData);
 
     void createUniformBuffers();
     void createDescriptorPool();
