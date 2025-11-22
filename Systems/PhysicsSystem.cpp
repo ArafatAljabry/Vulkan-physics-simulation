@@ -1,11 +1,9 @@
 #include "PhysicsSystem.h"
 #include "../engineinit.h"
-
-
+#include "../core.h"
+#include "string.h"
 namespace gea
 {
-//For physics computation
-float radius = 0.5;
 float frictionCooefficient = 0.25;
 
 
@@ -13,40 +11,65 @@ void gea::PhysicsSystem::update(float deltaTime)
 {
 
     gea::terrainInfo terrainInfo;
+    if(!terrainMesh)
+    {
+        for (auto &[entityID,component] : gea::EngineInit::registry.Transforms)
+        {
+            if(gea::EngineInit::registry.Transforms[entityID].name == "Terrain")
+            {
+                //get the mesh of the terrain
+                terrainMesh = &gea::EngineInit::registry.Meshes[entityID];
+                continue;
+            }
+        }
+    }
 
-    for(auto &[entityID,component] : gea::EngineInit::registry.Transforms)
+    for(auto &[entityID,component] : gea::EngineInit::registry.Physics)
     {
 
-        if(component.name == "Terrain")
-       {
-           //get the mesh
-            terrainMesh = &gea::EngineInit::registry.Meshes[entityID];
-            continue;
-       }
+        // find barrysentric coordinates of this entity
 
-        terrainInfo = ComputeBarrysentricCoord(component.mPosition,terrainMesh);
+            terrainInfo = ComputeBarrysentricCoord(gea::EngineInit::registry.Transforms[entityID].mPosition,terrainMesh);
 
-        //frictin cooefficient changes at a certain point to simulate change in friction
+        //friction cooefficient changes at a certain point to simulate change in friction
         if(terrainInfo.pos <= -12)
             frictionCooefficient = 1;
-        //Get the physics component of the entity( in this case a sphere)
-        gea::Physics& entityPhysicsComponent = gea::EngineInit::registry.Physics[entityID];
-
-
 
         //Update physics variables
-        glm::vec3 oldPosition = component.mPosition;
+        glm::vec3 oldPosition = gea::EngineInit::registry.Transforms[entityID].mPosition;
 
-        entityPhysicsComponent.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal) ;
-        entityPhysicsComponent.mVelocityVector        += entityPhysicsComponent.mAccelerationVector * deltaTime;
-        entityPhysicsComponent.mRollingDirectionVector = computeRotationVector(terrainInfo.normal,entityPhysicsComponent.mVelocityVector);
-        entityPhysicsComponent.mBarrySentricCoord      = terrainInfo.pos;
+        component.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal) ;
+        component.mVelocityVector        += component.mAccelerationVector * deltaTime;
+        component.mRollingDirectionVector = computeRotationVector(terrainInfo.normal,component .mVelocityVector);
+        component.mBarrySentricCoord      = terrainInfo.pos;
 
 
-        if(terrainInfo.pos == 0.f) // Stop the ball outside the mesh
+
+        if (terrainInfo.pos == 0.0f && glm::length(component.mVelocityVector) < 0.001f) // if we're outside the terrain or moving slow enough, shut it down.
+            component.mVelocityVector = glm::vec3(0);
+
+
+        //this raidus, with every other radius in the scene, except terrain
+        for(auto &[entityID2,component2] : gea::EngineInit::registry.Transforms)
         {
-            entityPhysicsComponent.mVelocityVector  = glm::vec3(0);
+            //avoid self and avoid terrain
+            if(component2.name == "Terrain")
+                continue;
+            if(gea::EngineInit::registry.Transforms[entityID].mPosition == component2.mPosition)
+                continue;
+
+            if(sphereCollisionDetection(
+                                        gea::EngineInit::registry.Transforms[entityID].mPosition,
+                                        component2.mPosition,
+                                        gea::EngineInit::registry.SphereCollision[entityID].radius,
+                                        gea::EngineInit::registry.SphereCollision[entityID2].radius))
+            {
+                //Project collision normal?
+                glm::vec3 collisionNormal = glm::normalize(component2.mPosition - gea::EngineInit::registry.Transforms[entityID].mPosition);
+                component.mVelocityVector = component.mVelocityVector - 2.0f * glm::dot(component.mVelocityVector, collisionNormal) * collisionNormal;
+            }
         }
+
 
         //Doing both changes in physics and transform simultaniously as we dont have a system in place, and making one is unnecessary use of time
         //Note: for Gameengine, seperate the above code with the one below
@@ -54,21 +77,37 @@ void gea::PhysicsSystem::update(float deltaTime)
         //use physics variables to update sphere rotation and position, making it roll on the surface
         //Update its velocity only within the domain of the terrain
 
+        //Change in position
+        glm::vec3 frictionForce = computeFriction(frictionCooefficient, terrainInfo.normal, component.mVelocityVector );
+        component.mVelocityVector += frictionForce * deltaTime;
+        gea::EngineInit::registry.Transforms[entityID].mPosition  += component.mVelocityVector * deltaTime; // speed calculated with friction
 
-        component.mPosition  += (entityPhysicsComponent.mVelocityVector + computeFriction(frictionCooefficient,terrainInfo.normal,entityPhysicsComponent.mVelocityVector )) *  deltaTime; // speed calculated with friction
+
         if(terrainInfo.pos != 0)
-            component.mPosition.y = entityPhysicsComponent.mBarrySentricCoord + radius;
+        {
+            float targetY = component.mBarrySentricCoord + gea::EngineInit::registry.SphereCollision[entityID].radius;
 
-        float rotasjonsVinkel = glm::length(component.mPosition - oldPosition)/radius;
-        rotasjonsVinkel *= 10.0f;
-        if(glm::length(entityPhysicsComponent.mVelocityVector) > 0)
-            component.mRotation  += rotasjonsVinkel * entityPhysicsComponent.mRollingDirectionVector;
-   }
+            if(gea::EngineInit::registry.Transforms[entityID].mPosition.y < targetY)
+                gea::EngineInit::registry.Transforms[entityID].mPosition.y = targetY;
+        }
+
+        //Change in rotation
+        float rotasjonsVinkel = glm::length(gea::EngineInit::registry.Transforms[entityID].mPosition - oldPosition)/
+                                gea::EngineInit::registry.SphereCollision[entityID].radius;
+        rotasjonsVinkel *= 10.0f; // Higher number feels more correct.
+        if(!(component.mVelocityVector == glm::vec3(0)))
+        {
+            gea::EngineInit::registry.Transforms[entityID].mRotation  += rotasjonsVinkel * component.mRollingDirectionVector;
+            //qDebug("speed: %f ", entityPhysicsComponent.mVelocityVector);
+         }
+    }
 }
 
 glm::vec3 gea::PhysicsSystem::computeAccelerationVector(glm::vec3 normal)
 {
-    return normal * (float)GRAVITAIONAL_ACCELERATION;
+    glm::vec3 gravity = glm::vec3(0,GRAVITAIONAL_ACCELERATION,0);
+    glm::vec3 tangent = gravity - glm::dot(gravity,normal) * normal;
+    return tangent;
 }
 
 glm::vec3 gea::PhysicsSystem::computeVelocityVector(glm::vec3 oldVelocityVector, glm::vec3 accelerationVector)
@@ -139,4 +178,10 @@ gea::terrainInfo gea::PhysicsSystem::ComputeBarrysentricCoord(glm::vec3 Position
         // Returner standardverdi hvis punktet ikke ligger i noen trekant
         return terrainInfo{0.f, glm::vec3(.0f, 0.0f, 0.0f)};
     }
+}
+
+bool gea::PhysicsSystem::sphereCollisionDetection(glm::vec3 a, glm::vec3 b, float radiusA, float radiusB)
+{
+    glm::vec3 vector = b - a;
+    return glm::length(vector) <= radiusA + radiusB;
 }

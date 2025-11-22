@@ -7,7 +7,7 @@
 #include "../Vertex.h"
 #include "../Components/Components.h"
 
-#define GRAVITAIONAL_ACCELERATION 9.81
+#define GRAVITAIONAL_ACCELERATION -9.81
 namespace gea
 {
 
@@ -34,6 +34,8 @@ namespace gea
         /// @param Position
         /// @param terrainVerticies
         terrainInfo ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh* terrainMesh);
+
+        bool sphereCollisionDetection(glm::vec3 a, glm::vec3 b, float radiusA, float radiusB);
 
         gea::Mesh* terrainMesh{nullptr};
 

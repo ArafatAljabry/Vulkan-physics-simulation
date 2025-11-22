@@ -92,7 +92,6 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Transform transform1;
     transform1.name = "Terrain";
     gea::Mesh mesh1;
-    mesh1.topology = 2;
     mesh1.path = "../../Assets/Models/output.obj";
     gea::Texture texture1;
     texture1.path = "../../Assets/Textures/viking_room.png";
@@ -105,15 +104,30 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     transform2.mPosition = glm::vec3(30.0,0.0,10.0); // initial position of the ball: Free to edit here
     transform2.name = "Sphere";
     gea::Mesh mesh2;
+    gea::SphereCollision col1;
     mesh2.path = "../../Assets/Models/Sphere.obj";
     gea::Texture texture2;
     texture2.path = "../../Assets/Textures/texture.jpg";
     gea::Physics physics2;
 
+    //Collision object setup.
+    gea::Entity collisionObject = entityManager.createEntity();
+    gea::Transform transform3;
+    transform3.mPosition = glm::vec3(4.0f, -11.0f, -18.0f);
+    transform3.mScale = glm::vec3(5.0,5.0,5.0);
+    gea::SphereCollision col2;
+    col2.radius = 5;
+    gea::Mesh mesh3;
+    mesh3.path ="../../Assets/Models/Sphere.obj";
+    gea::Texture texture3;
+    texture3.path = "../../Assets/Textures/texture.jpg";
+
+
     //connect components to mesh
     registry.addComponent(RoomOne.mEntityID, transform1);
     registry.addComponent(RoomOne.mEntityID, mesh1);
     registry.addComponent(RoomOne.mEntityID, texture1);
+    registry.addComponent(RoomOne.mEntityID,col1);
 
     registry.addComponent(RoomTwo.mEntityID, transform2);
     registry.addComponent(RoomTwo.mEntityID, mesh2);
@@ -121,6 +135,10 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     registry.addComponent(RoomTwo.mEntityID, physics2);
 
 
+    registry.addComponent(collisionObject.mEntityID, col2);
+    registry.addComponent(collisionObject.mEntityID, mesh3);
+    registry.addComponent(collisionObject.mEntityID, texture3);
+    registry.addComponent(collisionObject.mEntityID, transform3);
 
     // this has to happen last
     RenderSystem->init(renderSurface);

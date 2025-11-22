@@ -14,6 +14,7 @@ public:
     std::unordered_map<short, gea::Mesh> Meshes;
     std::unordered_map<short, gea::Texture> Textures;
     std::unordered_map<short, gea::Physics> Physics;
+    std::unordered_map<short, gea::SphereCollision> SphereCollision;
 
 
 
@@ -106,6 +107,12 @@ template <>
 inline void registry::addComponent<gea::Physics>(short entityID, const gea::Physics &component)
 {
     Physics[entityID] = component;
+}
+
+template <>
+inline void registry::addComponent<gea::SphereCollision>(short entityID, const gea::SphereCollision &component)
+{
+    SphereCollision[entityID] = component;
 }
 
 

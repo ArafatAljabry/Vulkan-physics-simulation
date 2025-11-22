@@ -92,10 +92,11 @@ struct Physics: Component
     glm::vec3 mAccelerationVector{0};
     glm::vec3 mRollingDirectionVector{0};
     float mBarrySentricCoord{0};
+
 };
 
 // New struct to hold per-entity rendering data
-struct EntityRenderData
+struct EntityRenderData : Component
 {
     int topology{1};
     std::vector<Vertex> vertices;
@@ -113,6 +114,11 @@ struct EntityRenderData
     uint32_t mipLevels;
 
     uint32_t entityID;  // To track which entity this belongs to
+};
+
+struct SphereCollision : Component
+{
+     float radius{1}; // we're only dealing with sphere collision, anything else is outside the frustum for now
 };
 //TODO: SoundSource - Expand sound component
 // struct SoundSource
