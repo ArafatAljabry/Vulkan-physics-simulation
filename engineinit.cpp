@@ -86,7 +86,6 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     QLog(mat4ToQString(cam1.mProjectionMatrix),"blue");
     QLog(&" " [ cam1.isActive],"blue");
 
-
     //Transform/mesh/texture entities
     gea::Entity RoomOne = entityManager.createEntity();
     gea::Transform transform1;
@@ -95,9 +94,6 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     mesh1.path = "../../Assets/Models/output.obj";
     gea::Texture texture1;
     texture1.path = "../../Assets/Textures/viking_room.png";
-
-
-
 
     gea::Entity RoomTwo = entityManager.createEntity();
     gea::Transform transform2;
@@ -133,7 +129,6 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     registry.addComponent(RoomTwo.mEntityID, mesh2);
     registry.addComponent(RoomTwo.mEntityID, texture2);
     registry.addComponent(RoomTwo.mEntityID, physics2);
-
 
     registry.addComponent(collisionObject.mEntityID, col2);
     registry.addComponent(collisionObject.mEntityID, mesh3);
