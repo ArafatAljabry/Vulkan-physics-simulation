@@ -66,6 +66,17 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     if (!timer.isValid())
         timer.start();
 
+
+    // Fluid simulation setup
+    int totalBalls = 500;        // Large number
+    float spawnInterval = 0.05f; // Seconds between spawns
+    glm::vec3 origin(0.0f, 10.0f, 0.0f);
+
+    // Store spawn state
+    static float spawnTimer = 0.0f;
+    static int spawnedCount = 0;
+
+
     // initialize systems
     RenderSystem   = std::make_unique<gea::RenderSystem>();
     CameraSystem   = std::make_unique<gea::CameraSystem>();
@@ -119,6 +130,14 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     texture3.path = "../../Assets/Textures/texture.jpg";
 
 
+
+    //Tracker
+    gea::Entity tracker1 = entityManager.createEntity();
+    gea::Tracker bug;
+    gea::Transform transform4;
+    bug.enitityToTrack = RoomTwo.mEntityID;
+    bug.isTracking = true;
+
     //connect components to mesh
     registry.addComponent(RoomOne.mEntityID, transform1);
     registry.addComponent(RoomOne.mEntityID, mesh1);
@@ -134,6 +153,11 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     registry.addComponent(collisionObject.mEntityID, mesh3);
     registry.addComponent(collisionObject.mEntityID, texture3);
     registry.addComponent(collisionObject.mEntityID, transform3);
+
+
+    //tracker components
+    registry.addComponent(tracker1.mEntityID, transform4);
+    registry.addComponent(tracker1.mEntityID, bug);
 
     // this has to happen last
     RenderSystem->init(renderSurface);
@@ -158,9 +182,49 @@ void EngineInit::update()
     float deltaTime = (currentTime - lastTime) / 1e9f; // convert to seconds
     lastTime = currentTime;
 
+    //FLuid simulation
+
+    if (spawnedCount < totalBalls && spawnTimer >= spawnInterval) {
+        spawnTimer = 0.0f;
+
+        gea::Entity ball = entityManager.createEntity();
+        gea::Transform transform;
+        transform.mPosition = origin;
+        transform.name = "FluidBall_" + std::to_string(spawnedCount);
+
+        gea::Mesh mesh;
+        mesh.path = "../../Assets/Models/Sphere.obj";
+
+        gea::Texture texture;
+        texture.path = "../../Assets/Textures/texture.jpg";
+
+        gea::Physics physics;
+        physics.velocity = glm::vec3(
+            (rand() % 100 - 50) / 100.0f, // random X drift
+            -1.0f,                        // downward flow
+            (rand() % 100 - 50) / 100.0f  // random Z drift
+            );
+
+        gea::Tracker tracker;
+        tracker.enitityToTrack = ball.mEntityID;
+        tracker.isTracking = true;
+
+        registry.addComponent(ball.mEntityID, transform);
+        registry.addComponent(ball.mEntityID, mesh);
+        registry.addComponent(ball.mEntityID, texture);
+        registry.addComponent(ball.mEntityID, physics);
+        registry.addComponent(ball.mEntityID, tracker);
+
+        spawnedCount++;
+        needsDescriptorRebuild = true; // Trigger Vulkan descriptor rebuild
+    }
+
+
     InputSystem->update(deltaTime);
     CameraSystem->Update();
     PhysicsSystem->update(deltaTime);
+    RenderSystem->Update(deltaTime);
+
 
 }
 } // End of namespace gea

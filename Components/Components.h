@@ -120,6 +120,13 @@ struct SphereCollision : Component
 {
      float radius{1}; // we're only dealing with sphere collision, anything else is outside the frustum for now
 };
+
+struct Tracker : Component
+{
+    size_t enitityToTrack{};
+    bool isTracking{false};
+};
+
 //TODO: SoundSource - Expand sound component
 // struct SoundSource
 // {

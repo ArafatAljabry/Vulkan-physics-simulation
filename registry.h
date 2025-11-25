@@ -15,6 +15,7 @@ public:
     std::unordered_map<short, gea::Texture> Textures;
     std::unordered_map<short, gea::Physics> Physics;
     std::unordered_map<short, gea::SphereCollision> SphereCollision;
+    std::unordered_map<short, gea::Tracker> Tracker;
 
 
 
@@ -113,6 +114,11 @@ template <>
 inline void registry::addComponent<gea::SphereCollision>(short entityID, const gea::SphereCollision &component)
 {
     SphereCollision[entityID] = component;
+}
+template <>
+    inline void registry::addComponent<gea::Tracker>(short entityID, const gea::Tracker &component)
+{
+    Tracker[entityID] = component;
 }
 
 

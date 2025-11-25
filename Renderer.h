@@ -14,6 +14,7 @@ struct QueueFamilyIndices;
 
 class Renderer : public QWindow
 {
+    friend class RenderSystem;
     Q_OBJECT
 public:
     explicit Renderer(QWindow* parent = nullptr);
@@ -23,10 +24,12 @@ public:
     void drawFrame();
 
     //Get the entityRenderData
-    //TODO: this needs to fit ECS
+    //TODO: this needs to fit ECS-> move to registry.h
     //we store multiple entities' render data
-    std::vector<gea::EntityRenderData> entityRenderData;
+    std::vector<gea::EntityRenderData>  entityRenderData{};
 
+    //Recreate vertex buffer
+    void updateVertexBuffer(gea::EntityRenderData& entityData);
 
 protected:
     //Qt event handlers - called when requestUpdate(); is called
@@ -34,11 +37,14 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
     bool event(QEvent* event) override;
 
-private:
+public:
+    //Tracking
+    bool needsDescriptorRebuild{false};
+    void updateIndexBuffer(gea::EntityRenderData& entityData);
     //Dynamic UBO stuff
     VkDeviceSize dynamicAlignment;
     std::vector<glm::mat4> modelMatrices;
-    int numObjects = 3;
+    int numObjects{1};
 
     //Instanced rendering stuff
     std::vector<VkBuffer> storageBuffers;
@@ -96,8 +102,7 @@ private:
 
     bool framebufferResized = false;
 
-    // ---- Functions ----
-
+    // ---- Functions ----    
     void cleanupSwapChain();
     void cleanup();
     void recreateSwapChain();

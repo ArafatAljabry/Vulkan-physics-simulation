@@ -69,6 +69,7 @@ Renderer::~Renderer()
 
 void Renderer::initVulkan()
 {
+    numObjects = gea::EngineInit::registry.Transforms.size();
     createInstance();
     setupDebugMessenger();
     createSurface();
@@ -114,6 +115,8 @@ void Renderer::cleanupSwapChain() {
     vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipeline(device, graphicsPipelineLine, nullptr);
+    vkDestroyPipeline(device, graphicsPipelinePoint, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
@@ -1212,7 +1215,6 @@ void Renderer::loadEntities()
         entityData.topology = gea::EngineInit::registry.Meshes[entityID].topology;
         // Store the completed entity data
         entityRenderData.push_back(std::move(entityData));
-
     }
 
     numInstances = entityRenderData.size();
@@ -1580,40 +1582,55 @@ void Renderer::recordCommandBuffer(uint32_t imageIndex)
 
     vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-
-    // Draw each entity with its own mesh and texture
+    // Draw each entity
     for (size_t e = 0; e < entityRenderData.size(); e++) {
         const auto& entity = entityRenderData[e];
+
+        // Skip entities without buffers or geometry
+        if (entity.vertexBuffer == VK_NULL_HANDLE ||
+            entity.indexBuffer == VK_NULL_HANDLE ||
+            entity.vertices.empty() ||
+            entity.indices.empty()) {
+            continue;
+        }
+
+        // Select pipeline
         if(entity.topology == 1)
             vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        if(entity.topology == 2)
+        else if(entity.topology == 2)
             vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLine);
-
-        if(entity.topology == 3)
+        else if(entity.topology == 3)
             vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinePoint);
+        else
+            continue;
 
-
-
-        // Bind this entity's vertex buffer
+        // Bind vertex buffer
         VkBuffer vertexBuffers[] = {entity.vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, vertexBuffers, offsets);
 
-        // Bind this entity's index buffer
+        // Bind index buffer
         vkCmdBindIndexBuffer(commandBuffers[imageIndex], entity.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        // Bind this entity's descriptor set (with its specific texture)
+        // Calculate and validate descriptor index
         size_t descriptorIndex = imageIndex * entityRenderData.size() + e;
+
+        if (descriptorIndex >= descriptorSets.size()) {
+            qCritical("Descriptor index out of bounds! index=%zu, size=%zu",
+                      descriptorIndex, descriptorSets.size());
+            continue;
+        }
+
         vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayout, 0, 1, &descriptorSets[descriptorIndex], 0, nullptr);
 
-        // Draw this entity (just 1 instance per entity for now)
+        // Draw
         vkCmdDrawIndexed(commandBuffers[imageIndex],
                          static_cast<uint32_t>(entity.indices.size()),
-                         1,                    // instanceCount
-                         0,                    // firstIndex
-                         0,                    // vertexOffset
-                         static_cast<uint32_t>(e)); // firstInstance - Use loop index!
+                         1,
+                         0,
+                         0,
+                         static_cast<uint32_t>(e));
     }
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
@@ -1700,8 +1717,37 @@ void Renderer::drawFrame()
 {
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
+    // CRITICAL: Rebuild descriptors if entity count changed
+    if (needsDescriptorRebuild)
+    {
+        qDebug("Rebuilding descriptors due to entity count change");
+        vkDeviceWaitIdle(device);
+
+        // Destroy old descriptor pool
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+
+        // Update instance count
+        numInstances = entityRenderData.size();
+
+        // Recreate storage buffers with new size
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            vkDestroyBuffer(device, storageBuffers[i], nullptr);
+            vkFreeMemory(device, storageBuffersMemory[i], nullptr);
+        }
+        createStorageBuffers();
+
+        // Recreate descriptor pool and sets
+        createDescriptorPool();
+        createDescriptorSets();
+
+        needsDescriptorRebuild = false;
+        qDebug("Descriptors rebuilt. New entity count: %d", (int)entityRenderData.size());
+    }
+
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
+                                            imageAvailableSemaphores[currentFrame],
+                                            VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapChain();
@@ -1709,14 +1755,17 @@ void Renderer::drawFrame()
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-    if(gea::EngineInit::registry.Cameras.empty())
-        qDebug("CAMERA container ALSO empty af");
-    for(auto &[entityID,component] : gea::EngineInit::registry.Cameras)
+
+    // Camera handling
+    if(!gea::EngineInit::registry.Cameras.empty())
     {
-        if(component.isActive)
-        {             
-            updateUniformBuffer(imageIndex,component.mProjectionMatrix,component.mViewMatrix);
-            break;
+        for(auto &[entityID, component] : gea::EngineInit::registry.Cameras)
+        {
+            if(component.isActive)
+            {
+                updateUniformBuffer(imageIndex, component.mProjectionMatrix, component.mViewMatrix);
+                break;
+            }
         }
     }
 
@@ -1754,14 +1803,12 @@ void Renderer::drawFrame()
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
     VkSwapchainKHR swapChains[] = {swapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
@@ -2055,4 +2102,34 @@ bool Renderer::event(QEvent* ev)
         return true;
     }
     return QWindow::event(ev);
+}
+
+
+//Recreate vertex buffer
+// Add this method to Renderer class
+void Renderer::updateVertexBuffer(gea::EntityRenderData& entityData)
+{
+    // Wait for device to be idle (ensure no rendering is using this buffer)
+    vkDeviceWaitIdle(device);
+
+    // Destroy old buffer
+    vkDestroyBuffer(device, entityData.vertexBuffer, nullptr);
+    vkFreeMemory(device, entityData.vertexBufferMemory, nullptr);
+
+    // Recreate with new data
+    createVertexBuffer(entityData);
+}
+
+void Renderer::updateIndexBuffer(gea::EntityRenderData& entityData)
+{
+    vkDeviceWaitIdle(device);
+
+    // Destroy old buffer
+    if (entityData.indexBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(device, entityData.indexBuffer, nullptr);
+        vkFreeMemory(device, entityData.indexBufferMemory, nullptr);
+    }
+
+    // Recreate with new data
+    createIndexBuffer(entityData);
 }
