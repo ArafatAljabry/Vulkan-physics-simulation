@@ -1,4 +1,4 @@
-#include "PhysicsSystem.h"
+    #include "PhysicsSystem.h"
 #include "../engineinit.h"
 #include "../core.h"
 #include "string.h"
@@ -26,11 +26,12 @@ void gea::PhysicsSystem::update(float deltaTime)
 
     for(auto &[entityID,component] : gea::EngineInit::registry.Physics)
     {
-
         // find barrysentric coordinates of this entity
-
-            terrainInfo = ComputeBarrysentricCoord(gea::EngineInit::registry.Transforms[entityID].mPosition,terrainMesh);
-
+            auto& foo1 = gea::EngineInit::registry;
+            auto& foo2 = foo1.Transforms[entityID];
+            auto& foo3 = foo2.mPosition;
+            terrainInfo = optimizedBarrysentriCoordinates(foo3, terrainMesh, 6);
+            //terrainInfo = optimizedBarrysentriCoordinates(gea::EngineInit::registry.Transforms[entityID].mPosition,terrainMesh);
         //friction cooefficient changes at a certain point to simulate change in friction
         if(terrainInfo.pos <= -12)
             frictionCooefficient = 1;
@@ -45,8 +46,6 @@ void gea::PhysicsSystem::update(float deltaTime)
 
 
 
-        if (terrainInfo.pos == 0.0f && glm::length(component.mVelocityVector) < 0.001f) // if we're outside the terrain or moving slow enough, shut it down.
-            component.mVelocityVector = glm::vec3(0);
 
 
         //this raidus, with every other radius in the scene, except terrain
@@ -64,9 +63,12 @@ void gea::PhysicsSystem::update(float deltaTime)
                                         gea::EngineInit::registry.SphereCollision[entityID].radius,
                                         gea::EngineInit::registry.SphereCollision[entityID2].radius))
             {
-                //Project collision normal?
-                glm::vec3 collisionNormal = glm::normalize(component2.mPosition - gea::EngineInit::registry.Transforms[entityID].mPosition);
-                component.mVelocityVector = component.mVelocityVector - 2.0f * glm::dot(component.mVelocityVector, collisionNormal) * collisionNormal;
+                if(component.collisionOn)
+                {
+                    //Project collision normal?
+                    glm::vec3 collisionNormal = glm::normalize(component2.mPosition - gea::EngineInit::registry.Transforms[entityID].mPosition);
+                    component.mVelocityVector = component.mVelocityVector - 2.0f * glm::dot(component.mVelocityVector, collisionNormal) * collisionNormal;
+                }
             }
         }
 
@@ -80,15 +82,21 @@ void gea::PhysicsSystem::update(float deltaTime)
         //Change in position
         glm::vec3 frictionForce = computeFriction(frictionCooefficient, terrainInfo.normal, component.mVelocityVector );
         component.mVelocityVector += frictionForce * deltaTime;
+        //Ensure the ball is still on the terrain
+        if (terrainInfo.pos = 0.0f && glm::length(component.mVelocityVector) < 0.001f) // if we're outside the terrain or moving slow enough, shut it down.
+            component.mVelocityVector = glm::vec3(0);
+
+
+
         gea::EngineInit::registry.Transforms[entityID].mPosition  += component.mVelocityVector * deltaTime; // speed calculated with friction
 
-
-        if(terrainInfo.pos != 0)
+        auto foo = terrainInfo.pos;
+        if(foo != 0 || terrainInfo.normal != glm::vec3(0.f))
         {
+            qDebug("changing y position to: %f", terrainInfo.pos);
             float targetY = component.mBarrySentricCoord + gea::EngineInit::registry.SphereCollision[entityID].radius;
-
-            if(gea::EngineInit::registry.Transforms[entityID].mPosition.y < targetY)
-                gea::EngineInit::registry.Transforms[entityID].mPosition.y = targetY;
+            auto& entityY = gea::EngineInit::registry.Transforms[entityID].mPosition.y;
+            entityY = targetY;
         }
 
         //Change in rotation
@@ -134,7 +142,7 @@ glm::vec3 gea::PhysicsSystem::computeFriction(float frictioncooefficient, glm::v
     return friction;
 }
 
-gea::terrainInfo gea::PhysicsSystem::ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh* terrainMesh)
+gea::terrainInfo gea::PhysicsSystem:: ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh* terrainMesh)
 {
     glm::vec2 p(Position.x, Position.z);
 
@@ -184,4 +192,94 @@ bool gea::PhysicsSystem::sphereCollisionDetection(glm::vec3 a, glm::vec3 b, floa
 {
     glm::vec3 vector = b - a;
     return glm::length(vector) <= radiusA + radiusB;
+}
+
+gea::terrainInfo gea::PhysicsSystem::optimizedBarrysentriCoordinates(glm::vec3 Position, gea::Mesh* terrainMesh, int gridResolution)
+{
+    if(!runOnce)
+    {
+        bool hasSetOriginalVertex = 0;
+        for( auto& vertex : terrainMesh->Vertices)
+        {
+            if(!hasSetOriginalVertex) {
+                minX=vertex.pos.x;
+                minZ=vertex.pos.z;
+                maxX=vertex.pos.x;
+                maxZ=vertex.pos.z;
+                hasSetOriginalVertex=1;
+            }
+            if(vertex.pos.x < minX)
+                minX = vertex.pos.x;
+            if(vertex.pos.z < minZ)
+                minZ = vertex.pos.z;
+
+
+            if(vertex.pos.z > maxZ)
+                maxZ = vertex.pos.z;
+            if(vertex.pos.x > maxX)
+                maxX = vertex.pos.x;
+        }
+        runOnce = true;
+        distanceZ = maxZ - minZ;
+        distanceX = maxX - minX;
+    }
+
+    float indexXfloat = (Position.x - minX) / distanceX * 84;
+    int indiceX = glm::floor(indexXfloat);
+
+    float indexZfloat = (Position.z - minZ) / distanceZ * 17;
+    int indiceZ = glm::floor(indexZfloat);
+
+    if(indiceX < 0 || indiceX >= 84 || indiceZ < 0 || indiceZ >= 17)
+    {
+        qDebug(" out of bound");
+        return terrainInfo{0.f, glm::vec3(0.f)};
+    }
+
+    int cellIndex = indiceX + indiceZ * 84;
+    auto terr = barrysentriCoordinatesAndNormal(Position, cellIndex, terrainMesh);
+    qDebug("barry Coo: %f", terr.pos);
+    return terr;
+}
+
+
+
+gea::terrainInfo gea::PhysicsSystem::barrysentriCoordinatesAndNormal(glm::vec3 Position, int indice, gea::Mesh* terrainMesh)
+{
+    glm::vec2 p(Position.x, Position.z);
+    int baseIndex = indice * 6; // 2 triangler per celle * 3 vertex per triangel
+
+    if(baseIndex + 5 >= terrainMesh->indices.size()) {
+        qDebug("Index out of range");
+        return terrainInfo{0.f, glm::vec3(0.f)};
+    }
+
+    for(int tri = 0; tri < 2; ++tri)
+    {
+        int triBase = baseIndex + tri * 3;
+        const Vertex& v0 = terrainMesh->Vertices[terrainMesh->indices[triBase]];
+        const Vertex& v1 = terrainMesh->Vertices[terrainMesh->indices[triBase + 1]];
+        const Vertex& v2 = terrainMesh->Vertices[terrainMesh->indices[triBase + 2]];
+
+        glm::vec2 a(v0.pos.x, v0.pos.z);
+        glm::vec2 b(v1.pos.x, v1.pos.z);
+        glm::vec2 c(v2.pos.x, v2.pos.z);
+
+        float areaABC = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+        if(fabs(areaABC) < 1e-6f) continue;
+
+        float lambda1 = ((b - p).x * (c - p).y - (b - p).y * (c - p).x) / areaABC;
+        float lambda2 = ((c - p).x * (a - p).y - (c - p).y * (a - p).x) / areaABC;
+        float lambda3 = 1.0f - lambda1 - lambda2;
+
+        if(lambda1 >= 0.f && lambda2 >= 0.f && lambda3 >= 0.f)
+        {
+            float height = lambda1 * v0.pos.y + lambda2 * v1.pos.y + lambda3 * v2.pos.y;
+            glm::vec3 normal = glm::normalize(glm::cross(v1.pos - v0.pos, v2.pos - v0.pos));
+            return terrainInfo{height, normal};
+        }
+    }
+
+    qDebug("Point not inside any triangle");
+    return ComputeBarrysentricCoord(Position,terrainMesh);
 }

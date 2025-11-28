@@ -3,6 +3,7 @@
 
 #include "System.h"
 #include "glm/glm.hpp"
+#include <unordered_map>
 #include <vector>
 #include "../Vertex.h"
 #include "../Components/Components.h"
@@ -11,11 +12,17 @@
 namespace gea
 {
 
+    struct BallTerrainCache {
+        int lastTriangleIndex = -1;
+        glm::vec3 lastPosition;
+    };
+
     struct terrainInfo
     {
         float pos{-1};
         glm::vec3 normal;
     };
+
     class PhysicsSystem : public System
     {
     public:
@@ -33,11 +40,15 @@ namespace gea
         ///        computes the barrysentric coordinates and returns the height and normal at that position.
         /// @param Position
         /// @param terrainVerticies
-        terrainInfo ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh* terrainMesh);
-
+        gea::terrainInfo ComputeBarrysentricCoord(glm::vec3 Position, gea::Mesh* terrainMesh);
+        gea::terrainInfo optimizedBarrysentriCoordinates(glm::vec3 Position, gea::Mesh* terrainMesh, int gridResolution);
+        gea::terrainInfo barrysentriCoordinatesAndNormal(glm::vec3 Position, int indice, gea::Mesh* terrainMesh);
         bool sphereCollisionDetection(glm::vec3 a, glm::vec3 b, float radiusA, float radiusB);
 
         gea::Mesh* terrainMesh{nullptr};
+        bool runOnce{false};
+        float minX{0}, minZ{0}, maxX{0}, maxZ{0};
+        int distanceZ{0}, distanceX{0}, deltaX{0}, deltaZ{0};
 
     };
 } // End of namespace gea

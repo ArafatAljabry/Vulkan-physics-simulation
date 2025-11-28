@@ -4,12 +4,23 @@
 namespace gea
 {
 
+ //defining comon components
+gea::Mesh EngineInit::sharedSphereMesh;
+gea::Texture EngineInit::sharedSphereTexture;
+
+
+
 // Defining static variables
 
 QElapsedTimer gea::EngineInit::timer{};
 float gea::EngineInit::lastTime{0.0f};
 float gea::EngineInit::deltaTime{0.0f};
 float gea::EngineInit::currentTime{0.0f};
+
+//Fluid simulation
+float gea::EngineInit::spawnTimer{0.0f};
+int   gea::EngineInit::totalBallsToSpawn{0};
+int   gea::EngineInit::ballsSpawned{0};
 
 std::filesystem::path EngineInit::rootPath;
 std::filesystem::path EngineInit::mEngineContentDirectoryPath;
@@ -62,19 +73,11 @@ void EngineInit::InitializeEngine()
 
 void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
 {
+    sharedSphereTexture.path = "../../Assets/Textures/texture.jpg";
+    sharedSphereMesh.path = "../../Assets/Models/Sphere.obj";
 
     if (!timer.isValid())
         timer.start();
-
-
-    // Fluid simulation setup
-    int totalBalls = 500;        // Large number
-    float spawnInterval = 0.05f; // Seconds between spawns
-    glm::vec3 origin(0.0f, 10.0f, 0.0f);
-
-    // Store spawn state
-    static float spawnTimer = 0.0f;
-    static int spawnedCount = 0;
 
 
     // initialize systems
@@ -110,11 +113,9 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Transform transform2;
     transform2.mPosition = glm::vec3(30.0,0.0,10.0); // initial position of the ball: Free to edit here
     transform2.name = "Sphere";
-    gea::Mesh mesh2;
+    gea::Mesh mesh2 = sharedSphereMesh;
     gea::SphereCollision col1;
-    mesh2.path = "../../Assets/Models/Sphere.obj";
-    gea::Texture texture2;
-    texture2.path = "../../Assets/Textures/texture.jpg";
+    gea::Texture texture2 = sharedSphereTexture;
     gea::Physics physics2;
 
     //Collision object setup.
@@ -124,10 +125,8 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     transform3.mScale = glm::vec3(5.0,5.0,5.0);
     gea::SphereCollision col2;
     col2.radius = 5;
-    gea::Mesh mesh3;
-    mesh3.path ="../../Assets/Models/Sphere.obj";
-    gea::Texture texture3;
-    texture3.path = "../../Assets/Textures/texture.jpg";
+    gea::Mesh mesh3 = sharedSphereMesh;
+    gea::Texture texture3 = sharedSphereTexture;
 
 
 
@@ -137,6 +136,40 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Transform transform4;
     bug.enitityToTrack = RoomTwo.mEntityID;
     bug.isTracking = true;
+
+
+
+    //Fluid simulation ###########################################
+    totalBallsToSpawn = 100;
+    for(int i = 0; i < totalBallsToSpawn; i++)
+    {
+        gea::Entity ball = entityManager.createEntity();
+
+        gea::Transform transform;
+        transform.mPosition = glm::vec3(30.0,0.0,10.0);
+        transform.name = "FluidBall_" + std::to_string(ballsSpawned);
+
+        gea::Physics physics;
+        physics.mVelocityVector = glm::vec3(
+            (rand() % 100 - 50) / 100.0f,  // random X drift
+            0.0f,                         // downward flow
+            (rand() % 100 - 50) / 100.0f // random Z drift
+            );
+        physics.collisionOn = false;
+
+        gea::Tracker tracker;
+        tracker.enitityToTrack = ball.mEntityID;
+        tracker.isTracking = true;
+
+        registry.addComponent(ball.mEntityID, transform);
+        registry.addComponent(ball.mEntityID, sharedSphereMesh);
+        registry.addComponent(ball.mEntityID, sharedSphereTexture);
+        registry.addComponent(ball.mEntityID, physics);
+        registry.addComponent(ball.mEntityID, tracker);
+    }
+
+
+    //###########################################################
 
     //connect components to mesh
     registry.addComponent(RoomOne.mEntityID, transform1);
@@ -181,44 +214,6 @@ void EngineInit::update()
     qint64 currentTime = timer.nsecsElapsed(); // time in nanoseconds
     float deltaTime = (currentTime - lastTime) / 1e9f; // convert to seconds
     lastTime = currentTime;
-
-    //FLuid simulation
-
-    if (spawnedCount < totalBalls && spawnTimer >= spawnInterval) {
-        spawnTimer = 0.0f;
-
-        gea::Entity ball = entityManager.createEntity();
-        gea::Transform transform;
-        transform.mPosition = origin;
-        transform.name = "FluidBall_" + std::to_string(spawnedCount);
-
-        gea::Mesh mesh;
-        mesh.path = "../../Assets/Models/Sphere.obj";
-
-        gea::Texture texture;
-        texture.path = "../../Assets/Textures/texture.jpg";
-
-        gea::Physics physics;
-        physics.velocity = glm::vec3(
-            (rand() % 100 - 50) / 100.0f, // random X drift
-            -1.0f,                        // downward flow
-            (rand() % 100 - 50) / 100.0f  // random Z drift
-            );
-
-        gea::Tracker tracker;
-        tracker.enitityToTrack = ball.mEntityID;
-        tracker.isTracking = true;
-
-        registry.addComponent(ball.mEntityID, transform);
-        registry.addComponent(ball.mEntityID, mesh);
-        registry.addComponent(ball.mEntityID, texture);
-        registry.addComponent(ball.mEntityID, physics);
-        registry.addComponent(ball.mEntityID, tracker);
-
-        spawnedCount++;
-        needsDescriptorRebuild = true; // Trigger Vulkan descriptor rebuild
-    }
-
 
     InputSystem->update(deltaTime);
     CameraSystem->Update();

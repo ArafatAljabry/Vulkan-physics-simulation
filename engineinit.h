@@ -24,12 +24,20 @@ public:
     static float deltaTime;
     static float currentTime;
 
+    //Fluid simulation
+    static float spawnTimer;
+    static int  totalBallsToSpawn;
+    static int  ballsSpawned;
+
+    static gea::Mesh sharedSphereMesh;
+    static gea::Texture sharedSphereTexture;
+
 
     //Systems
     static std::unique_ptr<gea::RenderSystem> RenderSystem;
     static std::unique_ptr<gea::CameraSystem> CameraSystem;
     static std::unique_ptr<InputSystem> InputSystem;
-    static std::unique_ptr<PhysicsSystem> PhysicsSystem;
+    static std::unique_ptr<PhysicsSystem>  PhysicsSystem;
 
 
     static QString mat4ToQString(const glm::mat4& mat);

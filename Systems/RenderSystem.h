@@ -23,7 +23,7 @@ public:
     VkDescriptorPool descriptorPool;
     size_t numInstances;
 
-private:
+
     Renderer* mRenderer{nullptr};
 };
 

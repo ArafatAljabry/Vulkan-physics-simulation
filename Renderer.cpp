@@ -1220,7 +1220,7 @@ void Renderer::loadEntities()
     numInstances = entityRenderData.size();
     qDebug("Loaded %d entities for rendering", numInstances);
 }
-void Renderer::loadModel(gea::EntityRenderData& entityData, const std::string& path)
+void Renderer::   loadModel(gea::EntityRenderData& entityData, const std::string& path)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;

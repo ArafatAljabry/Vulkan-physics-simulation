@@ -107,7 +107,7 @@ void RenderSystem::Update(float deltaTime)
 
             mRenderer->entityRenderData.push_back(newERD);
 
-            // CRITICAL: Flag that descriptors need rebuild
+            //Flag that descriptors need rebuild
             mRenderer->needsDescriptorRebuild = true;
 
             qDebug("Tracker entity %d added, descriptors need rebuild", entityID);

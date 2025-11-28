@@ -93,6 +93,8 @@ struct Physics: Component
     glm::vec3 mRollingDirectionVector{0};
     float mBarrySentricCoord{0};
 
+    bool collisionOn{true};
+
 };
 
 // New struct to hold per-entity rendering data
