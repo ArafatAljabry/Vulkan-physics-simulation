@@ -6,6 +6,7 @@
 #include "TransformManager.h"
 #include "qwindow.h"
 #include "Systems/RenderSystem.h"
+#include "Systems/fluidSystem.h"
 #include "Systems/CameraSystem.h"
 #include "entityManager.h"
 #include "registry.h"
@@ -36,8 +37,9 @@ public:
     //Systems
     static std::unique_ptr<gea::RenderSystem> RenderSystem;
     static std::unique_ptr<gea::CameraSystem> CameraSystem;
-    static std::unique_ptr<InputSystem> InputSystem;
-    static std::unique_ptr<PhysicsSystem>  PhysicsSystem;
+    static std::unique_ptr<InputSystem>       InputSystem;
+    static std::unique_ptr<PhysicsSystem>     PhysicsSystem;
+    static std::unique_ptr<gea::fluidSystem>  fluidSystem;
 
 
     static QString mat4ToQString(const glm::mat4& mat);

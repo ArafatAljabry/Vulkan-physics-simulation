@@ -117,7 +117,11 @@ struct EntityRenderData : Component
 
     uint32_t entityID;  // To track which entity this belongs to
 };
-
+struct fluidSimComponent : Component
+{
+    bool isActive{false};
+    glm::vec3 spawnPos{0.0f};
+};
 struct SphereCollision : Component
 {
      float radius{1}; // we're only dealing with sphere collision, anything else is outside the frustum for now
@@ -127,6 +131,7 @@ struct Tracker : Component
 {
     size_t enitityToTrack{};
     bool isTracking{false};
+    std::vector<glm::vec3> controlPoints; // For B-spline computation
 };
 
 //TODO: SoundSource - Expand sound component

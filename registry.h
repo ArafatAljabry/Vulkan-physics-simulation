@@ -16,6 +16,7 @@ public:
     std::unordered_map<short, gea::Physics> Physics;
     std::unordered_map<short, gea::SphereCollision> SphereCollision;
     std::unordered_map<short, gea::Tracker> Tracker;
+    std::unordered_map<short, gea::fluidSimComponent> fluidSimComponent;
 
 
 
@@ -121,7 +122,11 @@ template <>
     Tracker[entityID] = component;
 }
 
-
+template <>
+inline void registry::addComponent<gea::fluidSimComponent>(short entityID, const gea::fluidSimComponent &component)
+{
+    fluidSimComponent[entityID] = component;
+}
 //TODO: redo the registry, not scalable the way it is designed now.
 
 #endif // REGISTRY_H

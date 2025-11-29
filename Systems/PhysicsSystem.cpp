@@ -1,4 +1,4 @@
-    #include "PhysicsSystem.h"
+#include "PhysicsSystem.h"
 #include "../engineinit.h"
 #include "../core.h"
 #include "string.h"
@@ -43,9 +43,6 @@ void gea::PhysicsSystem::update(float deltaTime)
         component.mVelocityVector        += component.mAccelerationVector * deltaTime;
         component.mRollingDirectionVector = computeRotationVector(terrainInfo.normal,component .mVelocityVector);
         component.mBarrySentricCoord      = terrainInfo.pos;
-
-
-
 
 
         //this raidus, with every other radius in the scene, except terrain

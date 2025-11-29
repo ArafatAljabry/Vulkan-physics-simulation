@@ -47,6 +47,9 @@ add_executable(QtVulkan
     TransformManager.h TransformManager.cpp
     Systems/PhysicsSystem.h
     Systems/PhysicsSystem.cpp
+    BSplineCruve.h
+    Systems/fluidSystem.cpp
+    Systems/fluidSystem.h
 )
 
 # OpenAL / Sound

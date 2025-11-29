@@ -72,7 +72,7 @@ public:
     VkRenderPass renderPass;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline, graphicsPipelineLine, graphicsPipelinePoint;
+    VkPipeline graphicsPipeline, graphicsPipelineLine, graphicsPipelinePoint, graphicsPipelineLineStrip;
 
     VkCommandPool commandPool;
 

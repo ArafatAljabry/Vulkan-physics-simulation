@@ -10,6 +10,7 @@ gea::Texture EngineInit::sharedSphereTexture;
 
 
 
+
 // Defining static variables
 
 QElapsedTimer gea::EngineInit::timer{};
@@ -35,7 +36,7 @@ std::unique_ptr<RenderSystem>   EngineInit::RenderSystem{nullptr};
 std::unique_ptr<CameraSystem>   EngineInit::CameraSystem{nullptr};
 std::unique_ptr<InputSystem>    EngineInit::InputSystem{nullptr};
 std::unique_ptr<PhysicsSystem>  EngineInit::PhysicsSystem{nullptr};
-
+std::unique_ptr<fluidSystem>    EngineInit::fluidSystem{nullptr};
 ///
 /// @brief The first thing that runs when starting the engine
 ///
@@ -85,7 +86,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     CameraSystem   = std::make_unique<gea::CameraSystem>();
     InputSystem    = std::make_unique<gea::InputSystem>();
     PhysicsSystem  = std::make_unique<gea::PhysicsSystem>();
-
+    fluidSystem    = std::make_unique<gea::fluidSystem>();
     // create camera entities
     gea::Entity CameraMan = entityManager.createEntity();
 
@@ -140,32 +141,38 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
 
 
     //Fluid simulation ###########################################
-    totalBallsToSpawn = 100;
+    totalBallsToSpawn = 50; //more than 150 seem to be too much
     for(int i = 0; i < totalBallsToSpawn; i++)
     {
         gea::Entity ball = entityManager.createEntity();
 
         gea::Transform transform;
-        transform.mPosition = glm::vec3(30.0,0.0,10.0);
+        transform.mPosition = glm::vec3(-100.0,-100.0,-100.0); // spawn far away, fluidsystem will bring them back again.
+        //transform.mScale = glm::vec3(0.5,0.5,0.5);
         transform.name = "FluidBall_" + std::to_string(ballsSpawned);
 
+        gea::fluidSimComponent fluidSimComp;
+        fluidSimComp.spawnPos = glm::vec3(30.0,0.0,10.0);
+
         gea::Physics physics;
-        physics.mVelocityVector = glm::vec3(
-            (rand() % 100 - 50) / 100.0f,  // random X drift
-            0.0f,                         // downward flow
-            (rand() % 100 - 50) / 100.0f // random Z drift
-            );
         physics.collisionOn = false;
 
+        gea::Entity fluidTracker = entityManager.createEntity();
         gea::Tracker tracker;
         tracker.enitityToTrack = ball.mEntityID;
+        gea::Transform trackerTransform;
         tracker.isTracking = true;
+
 
         registry.addComponent(ball.mEntityID, transform);
         registry.addComponent(ball.mEntityID, sharedSphereMesh);
         registry.addComponent(ball.mEntityID, sharedSphereTexture);
         registry.addComponent(ball.mEntityID, physics);
-        registry.addComponent(ball.mEntityID, tracker);
+        registry.addComponent(ball.mEntityID, fluidSimComp);
+
+        registry.addComponent(fluidTracker.mEntityID, tracker);
+        registry.addComponent(fluidTracker.mEntityID, trackerTransform);
+
     }
 
 
@@ -216,6 +223,7 @@ void EngineInit::update()
     lastTime = currentTime;
 
     InputSystem->update(deltaTime);
+    fluidSystem->Update(deltaTime);
     CameraSystem->Update();
     PhysicsSystem->update(deltaTime);
     RenderSystem->Update(deltaTime);

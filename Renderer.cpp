@@ -82,6 +82,7 @@ void Renderer::initVulkan()
     graphicsPipeline =  createGraphicsPipeline(1);
     graphicsPipelineLine = createGraphicsPipeline(2);
     graphicsPipelinePoint = createGraphicsPipeline(3);
+    graphicsPipelineLineStrip = createGraphicsPipeline(4);
 
     createCommandPool();
     createColorResources();
@@ -117,6 +118,7 @@ void Renderer::cleanupSwapChain() {
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipeline(device, graphicsPipelineLine, nullptr);
     vkDestroyPipeline(device, graphicsPipelinePoint, nullptr);
+    vkDestroyPipeline(device, graphicsPipelineLineStrip, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
@@ -191,6 +193,7 @@ void Renderer::recreateSwapChain() {
     graphicsPipeline =  createGraphicsPipeline(1);
     graphicsPipelineLine = createGraphicsPipeline(2);
     graphicsPipelinePoint = createGraphicsPipeline(3);
+    graphicsPipelineLineStrip = createGraphicsPipeline(4);
 
     createColorResources();
     createDepthResources();
@@ -646,6 +649,8 @@ VkPipeline Renderer::createGraphicsPipeline(int topology) { // 1 = triangle, 2 =
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
     if(topology == 3)
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    if(topology == 4)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
     //inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
@@ -1601,6 +1606,8 @@ void Renderer::recordCommandBuffer(uint32_t imageIndex)
             vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLine);
         else if(entity.topology == 3)
             vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinePoint);
+        else if(entity.topology == 4)
+            vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLineStrip);
         else
             continue;
 
