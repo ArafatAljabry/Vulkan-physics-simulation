@@ -138,7 +138,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     bug.enitityToTrack = RoomTwo.mEntityID;
     bug.isTracking = true;
 
-
+/*
     //Fluid simulation ###########################################
     totalBallsToSpawn = 50; //more than 150 seem to be too much
     for(int i = 0; i < totalBallsToSpawn; i++)
@@ -172,7 +172,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
         registry.addComponent(fluidTracker.mEntityID, tracker);
         registry.addComponent(fluidTracker.mEntityID, trackerTransform);
 
-    }
+    }*/
 
     //###########################################################
 
