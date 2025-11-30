@@ -1,57 +1,33 @@
+#include "UI/MainWindow.h"
 #include <QApplication>
-#include <QPlainTextEdit>
-#include <QVulkanInstance>
-#include <QLibraryInfo>
-#include <QLoggingCategory>
-#include <QPointer>
-#include "MainWindow.h"
-#include "VulkanWindow.h"
+#include <QSplashScreen>
 
-Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")
-
-static QPointer<QPlainTextEdit> messageLogWidget;
-static QtMessageHandler oldMessageHandler{ nullptr };
-
-//Logger system from Qt. Nice to print out messages directly to our program
-static void messageHandler(QtMsgType msgType, const QMessageLogContext &logContext, const QString &text)
-{
-    if (!messageLogWidget.isNull())
-        messageLogWidget->appendPlainText(text);
-    if (oldMessageHandler)
-        oldMessageHandler(msgType, logContext, text);
-}
+#include "core.h"
+#include "engineinit.h"
 
 int main(int argc, char *argv[])
 {
-    //Makes a Qt application
-    QApplication app(argc, argv);
+    gea::EngineInit::PreInitializeEngine();
 
-    //Logger setup
-    messageLogWidget = new QPlainTextEdit(QLatin1String(QLibraryInfo::build()) + QLatin1Char('\n'));
-    messageLogWidget->setReadOnly(true);
-    oldMessageHandler = qInstallMessageHandler(messageHandler);
-    QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
+    QApplication a(argc, argv);
+    QSplashScreen *mSplash = new QSplashScreen;
+    mSplash->setPixmap(QPixmap(QString::fromStdString(gea::EngineInit::splashArtPath.string())));
+    mSplash->show();
 
-    //Qt wrapper for the actual Vulkan Instance
-    QVulkanInstance inst;
-    inst.setLayers({ "VK_LAYER_KHRONOS_validation" });
+    gea::EngineInit::InitializeEngine();
 
-    if (!inst.create())
-        qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
+    MainWindow w;
+    w.move(200, 100);
+    QLog("Cool log message from the main.cpp", "blue"); //NOTE: For testing
+    QLog("Even cooler log from the main.cpp", "white"); //NOTE: For testing
 
-    //VulkanWindow is the Qt window for our Vulkan Renderer
-    VulkanWindow *vulkanWindow = new VulkanWindow;
-    //It needs the Vulkan instance
-    vulkanWindow->setVulkanInstance(&inst);
 
-    //Main window of our program, that takes our VulkanWindow and logger as input
-    MainWindow mainWindow(vulkanWindow, messageLogWidget.data());
+    w.show();
+    w.start();
 
-    //Sets the size of the program
-    mainWindow.resize(1024, 1024);
-    //Tells the system to show this main window
-    mainWindow.show();
+    mSplash->hide();
+    //mSplash->finish(&w); //Splashscreen closes itself once window is up
 
-    //app.exec() runs the rest of the program
-    return app.exec();
+
+    return a.exec();
 }

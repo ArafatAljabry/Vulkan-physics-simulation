@@ -1,49 +1,55 @@
 #ifndef CAMERA_H
 #define CAMERA_H
-#include <QMatrix4x4>
 
+#include "glm/glm.hpp"
+#include <glm/ext/matrix_transform.hpp>
 class Camera
 {
 public:
     Camera();
-    ~Camera() {}
+    ~Camera() {};
 
-    void init();
+
+    void initializeCamera();
     void perspective(int degrees, double aspect, double nearplane, double farplane);
-    void lookAt(const QVector3D& eye, const QVector3D& at, const QVector3D& up);
+    void lookAt(const glm::vec3 &eye, const glm::vec3 &at, const glm::vec3 &up);
+    void setSpeed (float speed);
+    void move();
 
-    void translate(float dx, float dy, float dz);
-    void rotate(float t, float x, float y, float z);
+    //setter
+    inline void setViewMatrix(const glm::mat4x4 &newViewMatrix){ mViewMatrix = newViewMatrix; }
+    inline void setProjectionMatrix(const glm::mat4x4 &newProjectionMatrix){ mProjectionMatrix = newProjectionMatrix; }
 
-    void setSpeed(float speed);
-    void moveRight(float delta);
-    void updateHeigth(float deltaHeigth);
-    //QMatrix4x4 cMatrix();
+    //getter
+    inline glm::mat4x4  viewMatrix() const { return mViewMatrix; }
+    inline glm::mat4x4  projectionMatrix() const { return mProjectionMatrix; }
 
-	inline QMatrix4x4 viewMatrix() const { return mViewMatrix; }
-	inline QMatrix4x4 projectionMatrix() const { return mProjectionMatrix; }
+    ///
+    /// @brief Moves camera to a given position
+    /// @param position
+    ///
+    void translate(glm::vec3 position ){ setViewMatrix(glm::translate(mViewMatrix, position));}
+    ///
+    /// @brief Rotate the camera
+    /// @param angle
+    /// @param axis  What axis to rotate on
+    ///
+    void rotate(float angle, glm::vec3 axis){setViewMatrix(glm::rotate(mViewMatrix,angle,axis));}
 
-    void update();
-	void setPosition(const QVector3D& position);
-    void pitch(float degrees);
-    void yaw(float degrees);
-
-  
 private:
-    QVector3D mEye{0.0, 0.0, 0.0};  // Camera position
-    QVector3D mAt{0.0, 0.0, -1.0};   // Forward vector
-    QVector3D mUp{0.0, 1.0, 0.0};   // Up vector
-
-    QMatrix4x4 mProjectionMatrix{};
-    QMatrix4x4 mViewMatrix{};
-
-    QVector3D mPosition{ 0.f, 0.f, 0.f };
-    float mPitch{ 0.f };
-    float mYaw{ 0.f };
-
-    float mSpeed{ 0.f }; //camera will move by this speed
+    glm::vec3 mEye{0.0f,0.0f,0.0f};  //Camera position
+    glm::vec3 mAt {0.0f,0.0f,-1.0f}; //Forward vector
+    glm::vec3 mUp {0.0f,1.0f,0.0f};  //Up vector
 
 
+    glm::mat4x4 mProjectionMatrix{}; //How things will look in the viewport
+    glm::mat4x4 mViewMatrix{};       //Actual position of camera
+
+    glm::vec3 mPosition{0.f,0.f,0.f};
+    float mPitch{0.f};
+    float mYaw{0.f};
+
+    float mSpeed{1.f};
 };
 
 #endif // CAMERA_H
