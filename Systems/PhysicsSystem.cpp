@@ -5,6 +5,11 @@
 namespace gea
 {
 
+/*
+        Standard kinematic equation were used to compute  velocity and position
+        V = V0 + a * t
+        X = X0 + V  * t
+*/
 void gea::PhysicsSystem::update(float deltaTime)
 {
     gea::terrainInfo terrainInfo;
@@ -80,7 +85,7 @@ void gea::PhysicsSystem::update(float deltaTime)
                 {
                     if(component.collisionOn)
                     {
-                        //Project collision normal?
+                        //V_reflect = v - 2 (v · n) * n
                         glm::vec3 collisionNormal = glm::normalize(component2.mPosition - gea::EngineInit::registry.Transforms[entityID].mPosition);
                         component.mVelocityVector = component.mVelocityVector - 2.0f * glm::dot(component.mVelocityVector, collisionNormal) * collisionNormal;
                     }
@@ -119,6 +124,11 @@ void gea::PhysicsSystem::update(float deltaTime)
 
 
                                      /******************************* Update rotation /********************************/
+       /* Arc length: position_new - position_old
+        * Rotation angle = s/r
+        *
+        */
+
         //Change in rotation
         float rotasjonsVinkel = glm::length(gea::EngineInit::registry.Transforms[entityID].mPosition - oldPosition)/
                                 gea::EngineInit::registry.SphereCollision[entityID].radius;
@@ -134,6 +144,8 @@ void gea::PhysicsSystem::update(float deltaTime)
 
 glm::vec3 gea::PhysicsSystem::computeAccelerationVector(glm::vec3 normal)
 {
+    //Project gravity unto the normal vector
+    //Gravity - projection = acceleration vector along the slope
     glm::vec3 gravity = glm::vec3(0,GRAVITAIONAL_ACCELERATION,0);
     glm::vec3 tangent = gravity - glm::dot(gravity,normal) * normal;
     return tangent;
@@ -147,12 +159,13 @@ glm::vec3 gea::PhysicsSystem::computeRotationVector(glm::vec3 normalVector, glm:
     if(glm::length(glm::cross(velocityVector,normalVector)) < 0.001) //return [0,0,0] if the lenght of the cross product is too low
         return  glm::vec3(0);
 
-    //Not the same as the notes, yet the opposite gives wrong rotation
-    return normalize(glm::cross(normalVector,velocityVector));
+    //Rotation axis axis = N x V;
+    return normalize(glm::cross(normalVector,velocityVector));//Right hand rule
 }
 
 glm::vec3 gea::PhysicsSystem::computeFriction(float frictioncooefficient, glm::vec3 normal, glm::vec3 velocity)
 {
+    //Projecting the velocity unto the surface; Friction = -tangent * μ
     glm::vec3 tangent = velocity - glm::dot(velocity,normal) * normal;
     glm::vec3 friction = -tangent * frictioncooefficient;
     return friction;
@@ -206,6 +219,7 @@ gea::terrainInfo gea::PhysicsSystem:: ComputeBarrysentricCoord(glm::vec3 Positio
 
 bool gea::PhysicsSystem::sphereCollisionDetection(glm::vec3 a, glm::vec3 b, float radiusA, float radiusB)
 {
+    // Evaluating if they overlap if the distance between them is smaller than their combined radius
     glm::vec3 vector = b - a;
     return glm::length(vector) <= radiusA + radiusB;
 }
