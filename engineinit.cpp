@@ -140,7 +140,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     bug.enitityToTrack = MainSphere.mEntityID;
     bug.isTracking = true;
 
-
+/*
     //Fluid simulation - Comment out to test collision!      ###########################################
     totalBallsToSpawn = 50; //more than 150 seem to be too much
     for(int i = 0; i < totalBallsToSpawn; i++)
@@ -177,7 +177,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
         registry.addComponent(fluidTracker.mEntityID, trackerTransform);
 
     }
-
+*/
     //###########################################################
 
     //connect components to mesh

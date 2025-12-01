@@ -38,17 +38,22 @@ void gea::PhysicsSystem::update(float deltaTime)
 
         //friction cooefficient changes at a pre-determined height to simulate change in friction
         if(terrainInfo.pos <= -12)
-            component.fricionCooefficienet = 1;
+            component.fricionCooefficienet = 2;
+        if(terrainInfo.pos > -12)
+            component.fricionCooefficienet = .25;
 
 
 
                             /******************************* Update physics component /********************************/
         glm::vec3 oldPosition = gea::EngineInit::registry.Transforms[entityID].mPosition;
         glm::vec3 frictionForce = computeFriction(component.fricionCooefficienet, terrainInfo.normal, component.mVelocityVector );
+        if(glm::length(component.mVelocityVector) < 0.001)
+            frictionForce = glm::vec3(0);
 
 
-        component.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal) + frictionForce ;
+        component.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal);
         component.mVelocityVector        += component.mAccelerationVector * deltaTime;
+        component.mVelocityVector        += frictionForce * deltaTime;
         component.mRollingDirectionVector = computeRotationVector(terrainInfo.normal,component .mVelocityVector);
         component.mBarrySentricCoord      = terrainInfo.pos;
 
@@ -91,13 +96,17 @@ void gea::PhysicsSystem::update(float deltaTime)
         //Update its velocity only within the domain of the terrain
 
         //Ensure the ball is still on the terrain
-        if (terrainInfo.pos = 0.0f && glm::length(component.mVelocityVector) < 0.001f) // if we're outside the terrain or moving slow enough, shut it down.
-            component.mVelocityVector = glm::vec3(0);
+        if (terrainInfo.pos == 0.0f || glm::length(component.mVelocityVector) < 0.05f) // if we're outside the terrain or moving slow enough, shut it down.
+            {
+                component.mVelocityVector   = glm::vec3(0);
+                component.mAccelerationVector = glm::vec3(0);
+            }
 
+        qDebug("Velocity %f", glm::length(component.mVelocityVector));
         //Update entity position
         gea::EngineInit::registry.Transforms[entityID].mPosition  += component.mVelocityVector * deltaTime; // speed calculated with friction
 
-                                      /******************************* Update height /********************************/
+                                      /******************************* Update height ********************************/
 
         // keep the entity above the terain.
         if(terrainInfo.pos != 0 || terrainInfo.normal != glm::vec3(0.f)) // 0 Is a default value when computing barrysentric coordinates.

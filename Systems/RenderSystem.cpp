@@ -77,11 +77,11 @@ void RenderSystem::Update(float deltaTime)
                     // Debug: Print knot vector for first few iterations
                     if(component.controlPoints.size() <= 6)
                     {
-                        qDebug("Knot vector (n=%d, d=%d):", n, d);
+
                         QString knotStr = "";
                         for(float k : spline.t)
                             knotStr += QString::number(k) + " ";
-                        qDebug("%s", knotStr.toStdString().c_str());
+
                     }
 
                     // Clear and rebuild geometry
@@ -94,7 +94,7 @@ void RenderSystem::Update(float deltaTime)
                     float uMax = spline.t[n + 1];
                     int totalSamples = 100;
 
-                    qDebug("Sampling range: [%.2f, %.2f], samples=%d", uMin, uMax, totalSamples);
+
 
                     for(int s = 0; s <= totalSamples; s++)
                     {
