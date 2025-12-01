@@ -23,6 +23,8 @@ void gea::PhysicsSystem::update(float deltaTime)
         }
     }
 
+    if(!PhysicsActive)
+        return;
     for(auto &[entityID,component] : gea::EngineInit::registry.Physics)
     {
 

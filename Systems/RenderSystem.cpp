@@ -26,6 +26,9 @@ void RenderSystem::Update(float deltaTime)
     if(mRenderer == nullptr)
         return;
 
+    if(!UpdateTracker)
+        return;
+
     for(auto &[entityID, component] : gea::EngineInit::registry.Tracker)
     {
         if(!component.isTracking)

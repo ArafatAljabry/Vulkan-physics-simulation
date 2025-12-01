@@ -50,6 +50,9 @@ namespace gea
         float minX{0}, minZ{0}, maxX{0}, maxZ{0};
         int distanceZ{0}, distanceX{0}, deltaX{0}, deltaZ{0};
 
+        //Turn on and off physics
+        bool PhysicsActive{false};
+
     };
 } // End of namespace gea
 #endif // PHYSICSSYSTEM_H

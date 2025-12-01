@@ -16,6 +16,9 @@ namespace gea
         float spawnTimer{0};
         void Update(float deltaTime);
 
+        //Turn on and off fluid system
+        bool fluidSystemActive{false};
+
 
     };
 

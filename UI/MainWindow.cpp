@@ -380,7 +380,10 @@ void MainWindow::on_actionPlay_triggered()
 {
     //TODO: MainWindow::on_actionPlay_triggered() - Add logic for play and editor mode
     //ui->consoleOutput->append("Start play mode");
-    QLog("Start play", "green");
+    QLog("Physics on", "green");
+    gea::EngineInit::PhysicsSystem->PhysicsActive   = true;
+    gea::EngineInit::RenderSystem->UpdateTracker    = true;
+    gea::EngineInit::fluidSystem->fluidSystemActive = true;
 }
 
 
@@ -388,7 +391,10 @@ void MainWindow::on_actionStopPlay_triggered()
 {
     //TODO: MainWindow::on_actionStopPlay_triggered() - Add logic for play and editor mode
     //ui->consoleOutput->append("Return to editor");
-    FLog("Return to editor",logType::LogTemp);
+    FLog("Physics off",logType::LogTemp);
+    gea::EngineInit::PhysicsSystem->PhysicsActive   = false;
+    gea::EngineInit::RenderSystem->UpdateTracker    = false;
+    gea::EngineInit::fluidSystem->fluidSystemActive = false;
 }
 
 

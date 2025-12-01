@@ -25,6 +25,9 @@ public:
 
 
     Renderer* mRenderer{nullptr};
+
+    //Turn tracker on and off
+    bool UpdateTracker;
 };
 
 } // End of namespace gea

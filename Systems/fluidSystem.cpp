@@ -3,7 +3,8 @@
 
 void gea::fluidSystem::Update(float deltaTime)
 {
-
+    if(!fluidSystemActive)
+        return;
     for (auto &[entityID,component] : gea::EngineInit::registry.fluidSimComponent)
     {
         if(component.isActive == true)
