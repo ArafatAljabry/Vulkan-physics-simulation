@@ -92,7 +92,7 @@ struct Physics: Component
     glm::vec3 mAccelerationVector{0};
     glm::vec3 mRollingDirectionVector{0};
     float mBarrySentricCoord{0};
-
+    float fricionCooefficienet{0.25};
     bool collisionOn{true};
 
 };

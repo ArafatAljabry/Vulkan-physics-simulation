@@ -33,22 +33,22 @@ void gea::InputSystem::update(float deltaTime)
 
         if(inputList.w == ButtonState::PRESSED)
         {
-            component.Position += component.Direction * component.mSpeed * (mCameraSpeed/100);
+            component.Position += component.Direction * component.mSpeed * (mCameraSpeed);
         }
 
         if(inputList.a == ButtonState::PRESSED)
         {
-           component.Position -= component.Right * component.mSpeed  * (mCameraSpeed/100);
+           component.Position -= component.Right * component.mSpeed  * (mCameraSpeed);
         }
 
         if(inputList.s == ButtonState::PRESSED)
         {
-            component.Position-=  component.Direction * component.mSpeed  * (mCameraSpeed/100);
+            component.Position-=  component.Direction * component.mSpeed  * (mCameraSpeed);
         }
 
         if(inputList.d == ButtonState::PRESSED)
         {
-            component.Position += component.Right * component.mSpeed  * (mCameraSpeed/100);
+            component.Position += component.Right * component.mSpeed  * (mCameraSpeed);
         }
         //update camera  rotation
         component.mPitch = mPitch;
@@ -238,9 +238,10 @@ bool gea::InputSystem::eventFilter(QObject* obj, QEvent* event)
         if (numDegrees.y() > 1)
             mCameraSpeed += CAMERA_SPEED_INCREMENT_STEP;
 
-        if(mCameraSpeed <= 0.0f)
+        if(mCameraSpeed <= MINIMUM_CAMERA_SPEED)
             mCameraSpeed = MINIMUM_CAMERA_SPEED;
-        if(mCameraSpeed >= 200)
+
+        if(mCameraSpeed >= MAXIMUM_CAMERA_SPEED)
             mCameraSpeed = MAXIMUM_CAMERA_SPEED;
         qDebug("Changed speed %f",mCameraSpeed);
 

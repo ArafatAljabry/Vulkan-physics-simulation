@@ -4,8 +4,6 @@
 #include "string.h"
 namespace gea
 {
-float frictionCooefficient = 0.25;
-
 
 void gea::PhysicsSystem::update(float deltaTime)
 {
@@ -40,13 +38,16 @@ void gea::PhysicsSystem::update(float deltaTime)
 
         //friction cooefficient changes at a pre-determined height to simulate change in friction
         if(terrainInfo.pos <= -12)
-            frictionCooefficient = 1;
+            component.fricionCooefficienet = 1;
 
 
 
                             /******************************* Update physics component /********************************/
         glm::vec3 oldPosition = gea::EngineInit::registry.Transforms[entityID].mPosition;
-        component.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal) ;
+        glm::vec3 frictionForce = computeFriction(component.fricionCooefficienet, terrainInfo.normal, component.mVelocityVector );
+
+
+        component.mAccelerationVector     = computeAccelerationVector(terrainInfo.normal) + frictionForce ;
         component.mVelocityVector        += component.mAccelerationVector * deltaTime;
         component.mRollingDirectionVector = computeRotationVector(terrainInfo.normal,component .mVelocityVector);
         component.mBarrySentricCoord      = terrainInfo.pos;
@@ -61,9 +62,11 @@ void gea::PhysicsSystem::update(float deltaTime)
                 //avoid self and avoid terrain
                 if(component2.name == "Terrain")
                     continue;
-                if(gea::EngineInit::registry.Transforms[entityID].mPosition == component2.mPosition)
+                if(entityID == entityID2)
                     continue;
-
+                // make sure the other entity has a collision component too
+                if(gea::EngineInit::registry.SphereCollision.find(entityID2) == gea::EngineInit::registry.SphereCollision.end())
+                    continue;
                 if(sphereCollisionDetection(
                                             gea::EngineInit::registry.Transforms[entityID].mPosition,    // This entitys position
                                             component2.mPosition,                                        // Other entities position
@@ -86,12 +89,6 @@ void gea::PhysicsSystem::update(float deltaTime)
 
         //use physics variables to update sphere rotation and position, making it roll on the surface
         //Update its velocity only within the domain of the terrain
-
-
-                                        /******************************* Update position /********************************/
-        glm::vec3 frictionForce = computeFriction(frictionCooefficient, terrainInfo.normal, component.mVelocityVector );
-        //Adjust velocity to make up for friction
-        component.mVelocityVector += frictionForce * deltaTime;
 
         //Ensure the ball is still on the terrain
         if (terrainInfo.pos = 0.0f && glm::length(component.mVelocityVector) < 0.001f) // if we're outside the terrain or moving slow enough, shut it down.
@@ -131,11 +128,6 @@ glm::vec3 gea::PhysicsSystem::computeAccelerationVector(glm::vec3 normal)
     glm::vec3 gravity = glm::vec3(0,GRAVITAIONAL_ACCELERATION,0);
     glm::vec3 tangent = gravity - glm::dot(gravity,normal) * normal;
     return tangent;
-}
-
-glm::vec3 gea::PhysicsSystem::computeVelocityVector(glm::vec3 oldVelocityVector, glm::vec3 accelerationVector)
-{
-    return oldVelocityVector + accelerationVector;
 }
 
 glm::vec3 gea::PhysicsSystem::computeRotationVector(glm::vec3 normalVector, glm::vec3  velocityVector)

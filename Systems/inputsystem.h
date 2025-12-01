@@ -8,8 +8,8 @@
 #include <QEvent>
 #include "../Input.h"
 
-#define MINIMUM_CAMERA_SPEED 0.2f
-#define MAXIMUM_CAMERA_SPEED 600.0f
+#define MINIMUM_CAMERA_SPEED 20
+#define MAXIMUM_CAMERA_SPEED 400.0
 #define CAMERA_SPEED_INCREMENT_STEP 20.0F
 namespace gea
 {
@@ -71,7 +71,7 @@ private:
     std::unordered_map<Action, std::vector<InputBinding>> bindings;
 
     //TODO: fix this shitty way of doing things
-    float mYaw{0.0f}, mPitch{0.0f}, mSpeed{100.0f}, mCameraSpeed{100.f};
+    float mYaw{0.0f}, mPitch{0.0f}, mSpeed{10.0f}, mCameraSpeed{100.f};
     float oldMouseX{-1.0f}, oldMouseY{-1.0f};
 
 signals:

@@ -102,7 +102,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     QLog(&" " [ cam1.isActive],"blue");
 
     //Transform/mesh/texture entities
-    gea::Entity RoomOne = entityManager.createEntity();
+    gea::Entity Terain = entityManager.createEntity();
     gea::Transform transform1;
     transform1.name = "Terrain";
     gea::Mesh mesh1;
@@ -110,10 +110,10 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Texture texture1;
     texture1.path = "../../Assets/Textures/viking_room.png";
 
-    gea::Entity RoomTwo = entityManager.createEntity();
+    gea::Entity MainSphere = entityManager.createEntity();
     gea::Transform transform2;
     transform2.mPosition = glm::vec3(30.0,0.0,10.0); // initial position of the ball: Free to edit here
-    transform2.name = "Sphere";
+    transform2.name = "MainSphere";
     gea::Mesh mesh2 = sharedSphereMesh;
     gea::SphereCollision col1;
     gea::Texture texture2 = sharedSphereTexture;
@@ -122,6 +122,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     //Collision object setup.
     gea::Entity collisionObject = entityManager.createEntity();
     gea::Transform transform3;
+    transform3.name = "collisionObject";
     transform3.mPosition = glm::vec3(4.0f, -11.0f, -18.0f);
     transform3.mScale = glm::vec3(5.0,5.0,5.0);
     gea::SphereCollision col2;
@@ -135,11 +136,12 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Entity tracker1 = entityManager.createEntity();
     gea::Tracker bug;
     gea::Transform transform4;
-    bug.enitityToTrack = RoomTwo.mEntityID;
+    transform4.name = "Main-Tracker";
+    bug.enitityToTrack = MainSphere.mEntityID;
     bug.isTracking = true;
 
-/*
-    //Fluid simulation ###########################################
+
+    //Fluid simulation - Comment out to test collision!      ###########################################
     totalBallsToSpawn = 50; //more than 150 seem to be too much
     for(int i = 0; i < totalBallsToSpawn; i++)
     {
@@ -160,6 +162,8 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
         gea::Tracker tracker;
         tracker.enitityToTrack = ball.mEntityID;
         gea::Transform trackerTransform;
+        trackerTransform.name = "Tracker_" + std::to_string(ballsSpawned);
+
         tracker.isTracking = true;
 
 
@@ -172,20 +176,20 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
         registry.addComponent(fluidTracker.mEntityID, tracker);
         registry.addComponent(fluidTracker.mEntityID, trackerTransform);
 
-    }*/
+    }
 
     //###########################################################
 
     //connect components to mesh
-    registry.addComponent(RoomOne.mEntityID, transform1);
-    registry.addComponent(RoomOne.mEntityID, mesh1);
-    registry.addComponent(RoomOne.mEntityID, texture1);
-    registry.addComponent(RoomOne.mEntityID,col1);
+    registry.addComponent(Terain.mEntityID, transform1);
+    registry.addComponent(Terain.mEntityID, mesh1);
+    registry.addComponent(Terain.mEntityID, texture1);
+    registry.addComponent(Terain.mEntityID,col1);
 
-    registry.addComponent(RoomTwo.mEntityID, transform2);
-    registry.addComponent(RoomTwo.mEntityID, mesh2);
-    registry.addComponent(RoomTwo.mEntityID, texture2);
-    registry.addComponent(RoomTwo.mEntityID, physics2);
+    registry.addComponent(MainSphere.mEntityID, transform2);
+    registry.addComponent(MainSphere.mEntityID, mesh2);
+    registry.addComponent(MainSphere.mEntityID, texture2);
+    registry.addComponent(MainSphere.mEntityID, physics2);
 
     registry.addComponent(collisionObject.mEntityID, col2);
     registry.addComponent(collisionObject.mEntityID, mesh3);
