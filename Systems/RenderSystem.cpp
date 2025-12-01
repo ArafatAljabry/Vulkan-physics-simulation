@@ -106,11 +106,6 @@ void RenderSystem::Update(float deltaTime)
 
                         glm::vec3 point = spline.EvaluateBSpline(u);
 
-                        // Debug first and last points
-                        if(s == 0 || s == totalSamples)
-                            qDebug("Sample %d: u=%.3f -> (%.2f, %.2f, %.2f)",
-                                   s, u, point.x, point.y, point.z);
-
                         Vertex vert {};
                         vert.pos = point;
                         vert.color = {1.0f, 0.0f, 0.0f};
@@ -120,7 +115,7 @@ void RenderSystem::Update(float deltaTime)
                         entity.vertices.push_back(vert);
                     }
 
-                    qDebug("Generated %d vertices", (int)entity.vertices.size());
+
 
                     // Create sequential indices for line strip
                     for(uint32_t i = 0; i < entity.vertices.size(); i++)
@@ -151,7 +146,7 @@ void RenderSystem::Update(float deltaTime)
 
         if(!found)
         {
-            qDebug("Creating new tracker entity with ID: %d", entityID);
+
 
             gea::EntityRenderData newERD;
             newERD.entityID = entityID;

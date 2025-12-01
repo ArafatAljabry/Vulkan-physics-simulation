@@ -102,7 +102,7 @@ void gea::PhysicsSystem::update(float deltaTime)
                 component.mAccelerationVector = glm::vec3(0);
             }
 
-        qDebug("Velocity %f", glm::length(component.mVelocityVector));
+
         //Update entity position
         gea::EngineInit::registry.Transforms[entityID].mPosition  += component.mVelocityVector * deltaTime; // speed calculated with friction
 
